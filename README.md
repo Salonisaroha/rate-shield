@@ -2,14 +2,6 @@
 
 A fully customizable rate limiter designed to apply rate limiting on individual APIs with specific rules.
 
-
-#### 📊 **Dashboard Overview**
-
-![RateShield Dashboard](https://raw.githubusercontent.com/x-sushant-x/Rate-Shield/main/assets/main.png)
-
-
-![RateShield Edit Rule](https://raw.githubusercontent.com/x-sushant-x/Rate-Shield/main/assets/Edit%20Rule.png)
-
 ___
 
 #### 🎯 **Why RateShield?**
@@ -49,20 +41,6 @@ Why not? With some free time on hand, RateShield was created to explore the pote
 
 ---
 
-#### 🪧 Usage Guide
-  Check out this [document](https://github.com/x-sushant-x/Rate-Shield/tree/main/rate_shield/documentation).
-
----
-
-### A detailed blog post about its working.
-[Read Here](https://beyondthesyntax.substack.com/p/i-made-a-configurable-rate-limiter)
-
----
-
-#### How it works?
-<img src="https://raw.githubusercontent.com/x-sushant-x/Rate-Shield/main/assets/architecture.png"></img>
-
----
 
 #### 📋 **Prerequisites**
 
@@ -91,10 +69,6 @@ docker-compose up -d
 For detailed setup instructions, see [SETUP.md](SETUP.md).
 
  ---
-
-#### 🤝 **Contributing**
-
-Interested in contributing? We'd love your help! Check out our [Contribution Guidelines](https://github.com/x-sushant-x/Rate-Shield/blob/main/CONTRIBUTION.md) to get started.
 
 ---
 "# rate-shield" 
