@@ -1,0 +1,125 @@
+<div class="p-6 h-full overflow-auto">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Analytics & Insights</h1>
+      <p class="text-xs text-gray-400 mt-0.5">
+        Auto-refreshes every 10s
+        <span *ngIf="lastUpdated"> · Last updated {{ lastUpdated | date:'HH:mm:ss' }}</span>
+      </p>
+    </div>
+    <div *ngIf="loading" class="flex items-center gap-2 text-xs text-gray-400">
+      <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse inline-block"></span> Loading...
+    </div>
+    <div *ngIf="!loading && lastUpdated" class="flex items-center gap-2 text-xs text-green-500">
+      <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> Live
+    </div>
+  </div>
+
+  <div *ngIf="loading && totalRules === 0" class="flex items-center justify-center h-48 text-gray-400 text-sm">
+    Loading analytics...
+  </div>
+
+  <div *ngIf="!loading || totalRules > 0">
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-4 gap-4 mb-5">
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Total Rules</p>
+        <p class="text-3xl font-bold text-gray-800">{{ totalRules }}</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Allow On Error</p>
+        <p class="text-3xl font-bold text-green-600">{{ allowOnErrorCount }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ allowOnErrorPercent }}% of rules</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Risk Flags</p>
+        <p class="text-3xl font-bold text-red-500">{{ riskRules.length }}</p>
+        <p class="text-xs text-gray-400 mt-1">rules need attention</p>
+      </div>
+      <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Audit Events</p>
+        <p class="text-3xl font-bold text-blue-600">{{ createCount + updateCount + deleteCount }}</p>
+        <p class="text-xs text-gray-400 mt-1">last 50 events</p>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <!-- Strategy Breakdown -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">Strategy Breakdown</h2>
+        <div *ngIf="strategyData.length === 0" class="text-xs text-gray-400">No rules configured</div>
+        <div *ngFor="let s of strategyData" class="mb-4">
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="font-medium" [ngClass]="s.color">{{ s.label }}</span>
+            <span class="text-gray-500">{{ s.count }} / {{ totalRules }}</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div class="h-3 rounded-full bar-animate" [ngClass]="s.bg" [style.width]="getBarWidth(s.count, totalRules)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Method Breakdown -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-700 mb-4">HTTP Method Breakdown</h2>
+        <div *ngIf="methodData.length === 0" class="text-xs text-gray-400">No rules configured</div>
+        <div *ngFor="let m of methodData" class="mb-4">
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="font-semibold" [ngClass]="m.color">{{ m.method }}</span>
+            <span class="text-gray-500">{{ m.count }} rule{{ m.count !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div class="h-3 rounded-full bar-animate" [ngClass]="m.bg" [style.width]="getBarWidth(m.count, totalRules)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row -->
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Risk Analysis -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <h2 class="text-sm font-semibold text-gray-700 mb-3">Risk Analysis</h2>
+        <div *ngIf="riskRules.length === 0" class="flex items-center gap-2 text-xs text-green-600 font-medium py-2">
+          <span>✓</span> No risk flags detected
+        </div>
+        <div class="space-y-2 max-h-52 overflow-auto">
+          <div *ngFor="let r of riskRules" class="rounded-lg p-3 flex items-start justify-between gap-2" [ngClass]="getSeverityClass(r.severity)">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-semibold truncate">{{ r.endpoint }}</p>
+              <p class="text-xs opacity-75 mt-0.5">{{ r.reason }}</p>
+            </div>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" [ngClass]="getSeverityClass(r.severity)">
+              {{ r.severity }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Audit Feed -->
+      <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-semibold text-gray-700">Live Audit Feed</h2>
+          <div class="flex gap-2 text-xs">
+            <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">+{{ createCount }}</span>
+            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">~{{ updateCount }}</span>
+            <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">-{{ deleteCount }}</span>
+          </div>
+        </div>
+        <div class="space-y-1.5 max-h-52 overflow-auto">
+          <div
+            *ngFor="let log of recentActivity"
+            class="flex items-center gap-2 text-xs py-1.5 px-2 rounded-lg transition-all duration-500"
+            [class.new-entry]="isNewLog(log.id)">
+            <span class="px-2 py-0.5 rounded font-medium shrink-0" [ngClass]="getActionClass(log.action)">{{ log.action }}</span>
+            <span class="text-gray-600 truncate flex-1">{{ log.endpoint }}</span>
+            <span class="text-gray-400 shrink-0">{{ formatTimestamp(log.timestamp) }}</span>
+          </div>
+        </div>
+        <div *ngIf="recentActivity.length === 0" class="text-xs text-gray-400 py-2">No audit activity yet</div>
+      </div>
+    </div>
+  </div>
+</div>

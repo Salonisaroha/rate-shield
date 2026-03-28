@@ -1,0 +1,19 @@
+<div class="page-header">
+  <div>
+    <p class="page-title">API Configuration</p>
+    <p class="page-subtitle">Manage rate limit rules for your endpoints</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="relative">
+      <input
+        class="rs-input pl-9 w-56"
+        placeholder="Search endpoints..."
+        [(ngModel)]="searchedText"
+        (keyup.enter)="onSearch()"
+      />
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+    </div>
+    <button class="btn-ghost" (click)="onSearch()">Search</button>
+    <button class="btn-primary" (click)="onAddNew()">+ Add Rule</button>
+  </div>
+</div>

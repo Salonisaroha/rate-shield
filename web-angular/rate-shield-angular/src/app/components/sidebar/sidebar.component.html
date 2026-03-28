@@ -1,0 +1,68 @@
+<div class="w-64 h-full flex flex-col justify-between rounded-2xl mr-3 shrink-0"
+  style="background: #0F1117; border: 1px solid rgba(255,255,255,0.06);">
+
+  <!-- Logo -->
+  <div>
+    <div class="px-5 pt-6 pb-4">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+          style="background: linear-gradient(135deg, #6366f1, #8b5cf6); box-shadow: 0 2px 8px rgba(99,102,241,0.35);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="font-semibold text-sm tracking-tight block leading-tight" style="color: #FFFFFF;">Rate Shield</span>
+          <span style="font-size: 10px; color: #475569; letter-spacing: 0.03em;">API Gateway</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Divider -->
+    <div class="mx-5 mb-3" style="border-top: 1px solid rgba(255,255,255,0.06);"></div>
+
+    <!-- Nav label -->
+    <p class="px-5 mb-1.5" style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.08em;">Menu</p>
+
+    <nav class="px-3">
+      <ul class="space-y-0.5">
+        <li
+          *ngFor="let item of menuItems"
+          (click)="onSelectPage(item.page)"
+          (mouseenter)="hoveredPage = item.page"
+          (mouseleave)="hoveredPage = null"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150"
+          [ngStyle]="selectedPage === item.page
+            ? { 'background': 'rgba(99,102,241,0.18)', 'color': '#FFFFFF' }
+            : hoveredPage === item.page
+            ? { 'background': 'rgba(99,102,241,0.1)', 'color': '#A5B4FC' }
+            : { 'color': '#6B7280' }">
+          <span class="text-[15px] leading-none w-5 text-center shrink-0">{{ item.icon }}</span>
+          <span class="text-[0.81rem] font-medium flex-1">{{ item.label }}</span>
+          <span *ngIf="selectedPage === item.page"
+            class="w-1.5 h-1.5 rounded-full shrink-0"
+            style="background: #818CF8;"></span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Footer -->
+  <div class="px-5 pb-5">
+    <div class="pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
+      <div class="flex items-center gap-2.5">
+        <div class="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+          style="background: rgba(255,255,255,0.06);">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div>
+          <p style="font-size: 10px; color: #4B5563; line-height: 1.4;">Rate Shield v1.0</p>
+          <p style="font-size: 10px; color: #374151;">Open Source</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,95 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* ── Hero animations ── */
+.hero-fade-in {
+  animation: heroFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-slide-up {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-slide-up-delay {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+.hero-slide-up-delay-2 {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.hero-slide-up-delay-3 {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+@keyframes heroFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes heroSlideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Floating cards (right side) ── */
+.card-float-1 {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both,
+             floatY 4s ease-in-out 1s infinite;
+}
+.card-float-2 {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both,
+             floatY 4s ease-in-out 1.4s infinite;
+}
+.card-float-3 {
+  animation: heroSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both,
+             floatY 4s ease-in-out 1.8s infinite;
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+
+/* ── Pulsing dot ── */
+.pulse-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
+}
+
+/* ── Shimmer on badge ── */
+.badge-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.badge-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* ── Stat card fade up ── */
+.stat-card {
+  animation: fadeUp 0.2s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Hero card hover lift ── */
+.hero-pill-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hero-pill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.12);
+}

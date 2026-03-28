@@ -1,0 +1,22 @@
+<div class="page-card">
+  <app-api-configuration-header
+    (openAddDialog)="onOpenAddDialog()"
+    (searchRules)="onSearchRules($event)"
+  ></app-api-configuration-header>
+
+  <app-add-or-update-rule
+    *ngIf="isAddNewRuleDialogOpen"
+    [rule]="selectedRule"
+    [action]="action"
+    (close)="onCloseDialog()"
+  ></app-add-or-update-rule>
+
+  <app-rules-table
+    *ngIf="!isAddNewRuleDialogOpen"
+    [rulesData]="rulesData"
+    [currentPageNumber]="pageNumber"
+    [hasNextPage]="hasNextPage"
+    (editRule)="onEditRule($event)"
+    (pageChange)="onPageChange($event)"
+  ></app-rules-table>
+</div>

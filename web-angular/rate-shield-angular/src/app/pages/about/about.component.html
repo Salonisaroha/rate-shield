@@ -1,0 +1,87 @@
+<div class="page-card">
+
+  <div class="page-header">
+    <div>
+      <p class="page-title">About Rate Shield</p>
+      <p class="page-subtitle">Open-source API rate limiting gateway</p>
+    </div>
+  </div>
+
+  <div class="px-8 py-6 max-w-2xl space-y-6">
+
+    <!-- What is it -->
+    <div class="stat-card">
+      <p class="text-sm font-semibold text-slate-800 mb-2">What is Rate Shield?</p>
+      <p class="text-sm text-slate-500 leading-relaxed">
+        A fully configurable rate limiting gateway that applies per-endpoint rules with individual strategies.
+        Integrate it as middleware in any backend — Go, Node.js, Python, and more.
+      </p>
+    </div>
+
+    <!-- Features -->
+    <div>
+      <p class="section-label">Features</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="stat-card flex items-start gap-3">
+          <span class="text-lg mt-0.5">🛠</span>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Customizable Rules</p>
+            <p class="text-xs text-slate-400 mt-0.5">Per-endpoint rules with independent strategies and limits.</p>
+          </div>
+        </div>
+        <div class="stat-card flex items-start gap-3">
+          <span class="text-lg mt-0.5">⚡</span>
+          <div>
+            <p class="text-sm font-medium text-slate-700">gRPC + HTTP API</p>
+            <p class="text-xs text-slate-400 mt-0.5">Low-latency enforcement via gRPC or standard HTTP.</p>
+          </div>
+        </div>
+        <div class="stat-card flex items-start gap-3">
+          <span class="text-lg mt-0.5">🔌</span>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Plug-and-Play</p>
+            <p class="text-xs text-slate-400 mt-0.5">Drop-in middleware for Express, Flask, Go Fiber, and more.</p>
+          </div>
+        </div>
+        <div class="stat-card flex items-start gap-3">
+          <span class="text-lg mt-0.5">📊</span>
+          <div>
+            <p class="text-sm font-medium text-slate-700">Analytics & Audit</p>
+            <p class="text-xs text-slate-400 mt-0.5">Full audit trail and real-time analytics dashboard.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategies -->
+    <div>
+      <p class="section-label">Supported Strategies</p>
+      <div class="space-y-2">
+        <div class="flex items-center gap-3 py-2 border-b border-slate-50">
+          <span class="badge bg-violet-50 text-violet-700 w-40 justify-center">Token Bucket</span>
+          <p class="text-xs text-slate-500">Steady refill rate with burst allowance</p>
+        </div>
+        <div class="flex items-center gap-3 py-2 border-b border-slate-50">
+          <span class="badge bg-blue-50 text-blue-700 w-40 justify-center">Fixed Window</span>
+          <p class="text-xs text-slate-500">Fixed time window request counting</p>
+        </div>
+        <div class="flex items-center gap-3 py-2">
+          <span class="badge bg-emerald-50 text-emerald-700 w-40 justify-center">Sliding Window</span>
+          <p class="text-xs text-slate-500">Rolling window for smooth rate enforcement</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note -->
+    <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
+      <span class="text-amber-500 text-lg mt-0.5">⚠️</span>
+      <div>
+        <p class="text-sm font-medium text-amber-800">Under Active Development</p>
+        <p class="text-xs text-amber-600 mt-1 leading-relaxed">
+          This is an open-source hobby project. Not recommended for production use yet. Contributions welcome!
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>

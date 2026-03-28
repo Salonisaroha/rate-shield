@@ -1,0 +1,9 @@
+<div class="flex-1 h-full overflow-auto">
+  <app-dashboard-stats *ngIf="selectedPage === 'DASHBOARD'" (navigateTo)="onNavigateTo($event)"></app-dashboard-stats>
+  <app-api-configuration *ngIf="selectedPage === 'API_CONFIGURATION'"></app-api-configuration>
+  <app-analytics *ngIf="selectedPage === 'ANALYTICS'"></app-analytics>
+  <app-use-cases *ngIf="selectedPage === 'USE_CASES'" (tryInTester)="onTryInTester($event)"></app-use-cases>
+  <app-health-check *ngIf="selectedPage === 'HEALTH_CHECK'" [prefillIp]="testerPrefillIp" [prefillEndpoint]="testerPrefillEndpoint"></app-health-check>
+  <app-audit-logs *ngIf="selectedPage === 'AUDIT_LOGS'"></app-audit-logs>
+  <app-about *ngIf="selectedPage === 'ABOUT'"></app-about>
+</div>

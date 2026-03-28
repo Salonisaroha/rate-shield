@@ -1,0 +1,13 @@
+# Redis dump
+dump.rdb
+
+# Old React frontend 
+web/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/

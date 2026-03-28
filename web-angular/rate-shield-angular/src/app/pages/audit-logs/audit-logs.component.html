@@ -1,0 +1,69 @@
+<div class="page-card">
+
+  <div class="page-header">
+    <div>
+      <p class="page-title">Audit Logs</p>
+      <p class="page-subtitle">Track every rule creation, update, and deletion</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="relative">
+        <input
+          class="rs-input pl-9 w-52"
+          placeholder="Search by endpoint..."
+          [(ngModel)]="searchEndpoint"
+          (keyup.enter)="onSearch()"
+        />
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+      </div>
+      <button class="btn-ghost" (click)="onSearch()">Search</button>
+      <button class="btn-ghost" (click)="fetchLogs()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="flex items-center justify-center h-48">
+    <div class="flex items-center gap-2 text-slate-400 text-sm">
+      <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse inline-block"></span>
+      Loading...
+    </div>
+  </div>
+
+  <div *ngIf="!loading" class="px-8 py-4 pb-8">
+    <table class="rs-table">
+      <thead>
+        <tr>
+          <th style="width:18%">Time</th>
+          <th style="width:10%">Action</th>
+          <th style="width:30%">Endpoint</th>
+          <th style="width:15%">Actor</th>
+          <th style="width:15%">IP Address</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngIf="logs && logs.length > 0; else noLogs">
+          <tr *ngFor="let log of logs">
+            <td class="text-xs text-slate-500">{{ formatTimestamp(log.timestamp) }}</td>
+            <td>
+              <span class="badge" [ngClass]="getActionClass(log.action)">{{ log.action }}</span>
+            </td>
+            <td class="font-mono text-xs text-slate-700">{{ log.endpoint }}</td>
+            <td class="text-xs text-slate-600">{{ log.actor }}</td>
+            <td class="text-xs text-slate-500 font-mono">{{ log.ip_address }}</td>
+          </tr>
+        </ng-container>
+        <ng-template #noLogs>
+          <tr>
+            <td colspan="5" class="py-16 text-center text-slate-400 text-sm">
+              No audit logs yet. Logs appear when rules are created, updated, or deleted.
+            </td>
+          </tr>
+        </ng-template>
+      </tbody>
+    </table>
+
+    <div class="mt-5 flex justify-end gap-2">
+      <button *ngIf="pageNumber > 1" class="btn-ghost" (click)="onPrev()">← Prev</button>
+      <button *ngIf="hasNextPage" class="btn-ghost" (click)="onNext()">Next →</button>
+    </div>
+  </div>
+
+</div>

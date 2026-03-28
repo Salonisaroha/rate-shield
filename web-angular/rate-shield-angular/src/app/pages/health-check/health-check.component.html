@@ -1,0 +1,128 @@
+<div class="page-card">
+
+  <div class="page-header">
+    <div>
+      <p class="page-title">Live Rate Tester</p>
+      <p class="page-subtitle">Simulate requests and watch your rate limit in real-time</p>
+    </div>
+  </div>
+
+  <div class="px-6 py-5 grid grid-cols-2 gap-4 h-[calc(100%-73px)] overflow-hidden">
+
+    <!-- Left: Controls -->
+    <div class="space-y-4 overflow-auto">
+
+      <!-- Config Card -->
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Test Configuration</p>
+        <div class="space-y-3">
+          <div>
+            <label class="form-label">Client IP</label>
+            <input [(ngModel)]="ip" type="text" placeholder="e.g. 192.168.1.1" class="rs-input w-full" />
+          </div>
+          <div>
+            <label class="form-label">Endpoint</label>
+            <input [(ngModel)]="endpoint" type="text" placeholder="e.g. /api/v1/users" class="rs-input w-full font-mono" />
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button
+            (click)="test()"
+            [disabled]="testing"
+            class="btn-primary flex-1 disabled:opacity-50">
+            {{ testing ? 'Sending...' : 'Send Request' }}
+          </button>
+          <button
+            (click)="toggleSimulate()"
+            class="flex-1 text-sm py-2 px-4 rounded-lg font-medium transition-colors"
+            [ngClass]="simulating
+              ? 'bg-red-500 hover:bg-red-600 text-white'
+              : 'bg-indigo-500 hover:bg-indigo-600 text-white'">
+            {{ simulating ? '⏹ Stop' : '▶ Simulate' }}
+          </button>
+          <button (click)="reset()" class="btn-ghost px-3">↺</button>
+        </div>
+      </div>
+
+      <!-- Live Status Card -->
+      <div class="stat-card">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Live Status</p>
+
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs text-slate-500">Status</span>
+          <span class="badge" [ngClass]="statusClass">{{ statusLabel }}</span>
+        </div>
+
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs text-slate-500">Remaining / Limit</span>
+          <span class="text-sm font-bold text-slate-800">
+            {{ remaining !== null ? remaining : '—' }} / {{ limit !== null ? limit : '—' }}
+          </span>
+        </div>
+
+        <!-- Capacity Bar -->
+        <div>
+          <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+            <span>Capacity</span>
+            <span>{{ lastStatus !== null ? capacityPercent + '%' : '—' }}</span>
+          </div>
+          <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+            <div
+              class="h-2.5 rounded-full transition-all duration-300 capacity-bar"
+              [ngClass]="barColor"
+              [style.width]="lastStatus !== null ? capacityPercent + '%' : '0%'">
+            </div>
+          </div>
+          <div *ngIf="isBlocked" class="mt-3 text-xs text-red-600 font-medium text-center bg-red-50 rounded-lg py-2 animate-pulse">
+            🚫 Rate limit exceeded — requests are being blocked
+          </div>
+          <div *ngIf="noRuleFound" class="mt-3 text-xs text-yellow-700 font-medium text-center bg-yellow-50 rounded-lg py-2">
+            ⚠️ No rule found for this endpoint — create one in API Configuration first
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: Request History -->
+    <div class="stat-card flex flex-col overflow-hidden">
+      <div class="flex items-center justify-between mb-4 shrink-0">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Request History</p>
+        <span class="badge bg-slate-100 text-slate-500">{{ history.length }} requests</span>
+      </div>
+
+      <div *ngIf="history.length === 0" class="flex flex-col items-center justify-center flex-1 text-slate-300">
+        <p class="text-4xl mb-2">📡</p>
+        <p class="text-sm">No requests yet</p>
+        <p class="text-xs mt-1">Hit "Send Request" to start</p>
+      </div>
+
+      <div class="space-y-1.5 overflow-auto flex-1">
+        <div
+          *ngFor="let h of history; let i = index"
+          class="flex items-center gap-3 text-xs py-2 px-3 rounded-lg"
+          [class.bg-slate-50]="i === 0">
+          <span
+            class="badge w-16 justify-center shrink-0"
+            [ngClass]="h.blocked ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'">
+            {{ h.status }}
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div
+                class="h-1.5 rounded-full transition-all"
+                [ngClass]="h.blocked ? 'bg-red-400' : (h.remaining !== null && h.limit ? (h.remaining / h.limit <= 0.2 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-slate-300')"
+                [style.width]="h.limit && h.remaining !== null ? (h.remaining / h.limit * 100) + '%' : (h.blocked ? '0%' : '100%')">
+              </div>
+            </div>
+          </div>
+          <span class="text-slate-500 shrink-0 font-mono">
+            {{ h.remaining !== null ? h.remaining : '—' }}/{{ h.limit !== null ? h.limit : '—' }}
+          </span>
+          <span class="text-slate-300 shrink-0">{{ h.timestamp | date:'HH:mm:ss' }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
