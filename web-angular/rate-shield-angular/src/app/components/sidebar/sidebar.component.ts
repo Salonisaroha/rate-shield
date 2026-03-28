@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -14,6 +15,9 @@ export class SidebarComponent implements OnChanges {
 
   selectedPage = 'DASHBOARD';
   hoveredPage: string | null = null;
+  hoveredLogout = false;
+
+  constructor(public auth: AuthService) {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['externalPage']) {

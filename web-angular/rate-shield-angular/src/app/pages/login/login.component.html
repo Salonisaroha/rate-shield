@@ -1,0 +1,74 @@
+<div style="min-height: 100vh; background: #ECEEF2; display: flex; align-items: center; justify-content: center; font-family: 'Poppins', sans-serif;">
+  <div style="width: 100%; max-width: 400px; padding: 0 16px;">
+
+    <!-- Card -->
+    <div style="background: #FFFFFF; border: 1px solid #DDD6FE; border-radius: 20px; padding: 40px 36px; box-shadow: 0 4px 24px rgba(139,92,246,0.1), inset 0 1px 0 rgba(255,255,255,0.9);">
+
+      <!-- Logo -->
+      <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 32px;">
+        <div style="width: 52px; height: 52px; background: linear-gradient(135deg, #6366F1, #8B5CF6); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(99,102,241,0.35); margin-bottom: 14px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <h1 style="font-size: 1.2rem; font-weight: 700; color: #0F172A; letter-spacing: -0.02em; margin: 0;">Rate Shield</h1>
+        <p style="font-size: 0.72rem; color: #94A3B8; margin-top: 3px;">API Rate Limiting Gateway</p>
+      </div>
+
+      <!-- Heading -->
+      <div style="margin-bottom: 22px;">
+        <h2 style="font-size: 0.95rem; font-weight: 600; color: #1E293B; margin: 0 0 4px;">Welcome back</h2>
+        <p style="font-size: 0.73rem; color: #94A3B8; margin: 0;">Enter your password to access the dashboard</p>
+      </div>
+
+      <!-- Form -->
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.73rem; font-weight: 500; color: #475569; margin-bottom: 6px;">Password</label>
+          <div style="position: relative;">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="Enter password"
+              required
+              style="width: 100%; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 40px 10px 14px; font-size: 0.82rem; color: #0F172A; outline: none; font-family: 'Poppins', sans-serif; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s;"
+              [style.borderColor]="error ? '#EF4444' : focused ? '#6366F1' : '#E2E8F0'"
+              [style.boxShadow]="focused ? '0 0 0 3px rgba(99,102,241,0.1)' : 'none'"
+              (focus)="focused = true; error = ''"
+              (blur)="focused = false"
+            />
+            <button type="button" (click)="showPassword = !showPassword"
+              style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94A3B8; padding: 0; display: flex; align-items: center;">
+              <svg *ngIf="!showPassword" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg *ngIf="showPassword" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+          <p *ngIf="error" style="font-size: 0.71rem; color: #EF4444; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ error }}
+          </p>
+        </div>
+
+        <button type="submit" [disabled]="loading"
+          style="width: 100%; background: linear-gradient(135deg, #6366F1, #8B5CF6); color: #fff; font-size: 0.82rem; font-weight: 600; padding: 11px; border-radius: 10px; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(99,102,241,0.35); transition: opacity 0.15s, transform 0.15s; font-family: 'Poppins', sans-serif;"
+          [style.opacity]="loading ? '0.7' : '1'"
+          onmouseenter="if(!this.disabled) this.style.transform='translateY(-1px)'"
+          onmouseleave="this.style.transform='translateY(0)'">
+          {{ loading ? 'Signing in...' : 'Sign In' }}
+        </button>
+
+      </form>
+    </div>
+
+    <p style="text-align: center; font-size: 0.68rem; color: #CBD5E1; margin-top: 18px;">
+      Rate Shield v1.0 &nbsp;·&nbsp; Protected Dashboard
+    </p>
+  </div>
+</div>
