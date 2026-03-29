@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/models"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/models"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 const (

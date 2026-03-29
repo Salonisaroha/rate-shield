@@ -3,7 +3,7 @@ package redisClient
 import (
 	"time"
 
-	"github.com/x-sushant-x/RateShield/models"
+	"github.com/salonisaroha/RateShield/models"
 )
 
 type RedisRuleClient interface {

@@ -5,9 +5,9 @@ import (
 	"net"
 
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/limiter"
-	"github.com/x-sushant-x/RateShield/proto/github.com/x-sushant-x/RateShield/ratelimitpb"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/limiter"
+	"github.com/salonisaroha/RateShield/proto/github.com/x-sushant-x/RateShield/ratelimitpb"
+	"github.com/salonisaroha/RateShield/utils"
 	"google.golang.org/grpc"
 )
 

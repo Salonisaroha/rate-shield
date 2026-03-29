@@ -5,7 +5,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/x-sushant-x/RateShield/models"
+	"github.com/salonisaroha/RateShield/models"
 )
 
 type MockRedisFixedWindowClient struct {

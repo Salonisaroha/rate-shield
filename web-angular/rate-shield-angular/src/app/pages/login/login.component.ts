@@ -24,12 +24,15 @@ export class LoginComponent {
       return;
     }
     this.loading = true;
-    setTimeout(() => {
-      const success = this.auth.login(this.password);
-      if (!success) {
-        this.error = 'Incorrect password. Please try again.';
+    this.error = '';
+
+    this.auth.login(this.password).subscribe(result => {
+      if (result.success) {
+        window.location.reload();
+      } else {
+        this.error = result.message;
+        this.loading = false;
       }
-      this.loading = false;
-    }, 400);
+    });
   }
 }

@@ -1,17 +1,18 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
 # Compiled output
 /dist
 /tmp
 /out-tsc
 /bazel-out
 
-# Node
+# Node dependencies — run npm install to restore
 /node_modules
 npm-debug.log
 yarn-error.log
 
-# IDEs and editors
+# Angular build cache
+/.angular/cache
+
+# IDEs
 .idea/
 .project
 .classpath
@@ -20,7 +21,7 @@ yarn-error.log
 .settings/
 *.sublime-workspace
 
-# Visual Studio Code
+# VS Code
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -28,8 +29,7 @@ yarn-error.log
 !.vscode/extensions.json
 .history/*
 
-# Miscellaneous
-/.angular/cache
+# Misc
 .sass-cache/
 /connect.lock
 /coverage
@@ -41,8 +41,7 @@ testem.log
 .DS_Store
 Thumbs.db
 
-# Environment files 
-
+# Environment files — contain API URLs and secrets
 .env
 .env.local
 .env.production

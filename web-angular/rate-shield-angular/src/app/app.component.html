@@ -1,6 +1,10 @@
-<app-login *ngIf="!auth.isLoggedIn()"></app-login>
+<div *ngIf="!authChecked" class="flex items-center justify-center h-screen w-screen bg-global-bg">
+  <span class="text-gray-400 text-sm">Loading...</span>
+</div>
 
-<div *ngIf="auth.isLoggedIn()" class="flex flex-row bg-global-bg p-3 h-screen w-screen overflow-hidden gap-0">
+<app-login *ngIf="authChecked && !auth.isLoggedIn()"></app-login>
+
+<div *ngIf="authChecked && auth.isLoggedIn()" class="flex flex-row bg-global-bg p-3 h-screen w-screen overflow-hidden gap-0">
   <app-sidebar (selectPage)="onSelectPage($event)" [externalPage]="selectedPage"></app-sidebar>
   <app-content-area class="flex-1 min-w-0" [selectedPage]="selectedPage" (pageChange)="onSelectPage($event)"></app-content-area>
 </div>

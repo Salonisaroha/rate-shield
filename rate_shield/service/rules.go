@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/models"
-	redisClient "github.com/x-sushant-x/RateShield/redis"
+	"github.com/salonisaroha/RateShield/models"
+	redisClient "github.com/salonisaroha/RateShield/redis"
 )
 
 const (

@@ -49,3 +49,14 @@ func SuccessResponse(data interface{}, w http.ResponseWriter) {
 	bytes, _ := json.Marshal(msg)
 	w.Write(bytes)
 }
+
+func JSONError(w http.ResponseWriter, statusCode int, message string) {
+	msg := map[string]string{
+		"status":  "fail",
+		"message": message,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	bytes, _ := json.Marshal(msg)
+	w.Write(bytes)
+}

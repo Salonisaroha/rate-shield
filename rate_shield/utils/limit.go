@@ -3,7 +3,7 @@ package utils
 import (
 	"net/http"
 
-	"github.com/x-sushant-x/RateShield/models"
+	"github.com/salonisaroha/RateShield/models"
 )
 
 func BuildRateLimitErrorResponse(statusCode int) *models.RateLimitResponse {

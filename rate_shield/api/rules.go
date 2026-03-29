@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/x-sushant-x/RateShield/models"
-	"github.com/x-sushant-x/RateShield/service"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/models"
+	"github.com/salonisaroha/RateShield/service"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 type RulesAPIHandler struct {

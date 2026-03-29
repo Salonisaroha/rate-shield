@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { ContentAreaComponent } from './components/content-area/content-area.component';
@@ -12,16 +12,19 @@ import { AuthService } from './services/auth.service';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   selectedPage = 'DASHBOARD';
+  authChecked = false;  
 
   constructor(public auth: AuthService) {}
 
-  onSelectPage(page: string) {
-    this.selectedPage = page;
+  ngOnInit() {
+    this.auth.validateStoredToken().subscribe(() => {
+      this.authChecked = true;
+    });
   }
 
-  logout() {
-    this.auth.logout();
+  onSelectPage(page: string) {
+    this.selectedPage = page;
   }
 }

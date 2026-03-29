@@ -7,9 +7,9 @@ import (
 	"strconv"
 
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/limiter"
-	redisClient "github.com/x-sushant-x/RateShield/redis"
-	"github.com/x-sushant-x/RateShield/service"
+	"github.com/salonisaroha/RateShield/limiter"
+	redisClient "github.com/salonisaroha/RateShield/redis"
+	"github.com/salonisaroha/RateShield/service"
 )
 
 type Server struct {
@@ -30,6 +30,7 @@ func (s Server) StartServer() error {
 
 	s.rulesRoutes(mux)
 	s.auditRoutes(mux)
+	s.authRoutes(mux)
 	s.registerRateLimiterRoutes(mux)
 	s.setupHome(mux)
 
@@ -105,6 +106,21 @@ func (s Server) auditRoutes(mux *http.ServeMux) {
 func (s Server) registerRateLimiterRoutes(mux *http.ServeMux) {
 	rateLimiterHandler := NewRateLimitHandler(s.limiter)
 	mux.HandleFunc("/check-limit", rateLimiterHandler.CheckRateLimit)
+}
+
+func (s Server) authRoutes(mux *http.ServeMux) {
+	redisRuleClient, err := redisClient.NewRulesClient()
+	if err != nil {
+		log.Err(err).Msg("unable to setup redis client for auth")
+		log.Fatal()
+	}
+	client := redisRuleClient.(redisClient.RedisRules).GetClient()
+	authHandler := NewAuthAPIHandler(client)
+
+	mux.HandleFunc("/auth/setup", authHandler.SetupPassword)
+	mux.HandleFunc("/auth/login", authHandler.Login)
+	mux.HandleFunc("/auth/validate", authHandler.ValidateToken)
+	mux.HandleFunc("/auth/logout", authHandler.Logout)
 }
 
 func (s Server) setupHome(mux *http.ServeMux) {

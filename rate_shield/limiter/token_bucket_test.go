@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/x-sushant-x/RateShield/models"
-	"github.com/x-sushant-x/RateShield/service"
+	"github.com/salonisaroha/RateShield/models"
+	"github.com/salonisaroha/RateShield/service"
 )
 
 type MockRedisRateLimiterClient struct {

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/x-sushant-x/RateShield/service"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/service"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 type AuditAPIHandler struct {

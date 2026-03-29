@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/rs/zerolog/log"
-	"github.com/x-sushant-x/RateShield/models"
-	redisClient "github.com/x-sushant-x/RateShield/redis"
-	"github.com/x-sushant-x/RateShield/service"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/models"
+	redisClient "github.com/salonisaroha/RateShield/redis"
+	"github.com/salonisaroha/RateShield/service"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 const (

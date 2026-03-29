@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/x-sushant-x/RateShield/models"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/models"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 var (

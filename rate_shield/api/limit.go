@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/x-sushant-x/RateShield/limiter"
-	"github.com/x-sushant-x/RateShield/utils"
+	"github.com/salonisaroha/RateShield/limiter"
+	"github.com/salonisaroha/RateShield/utils"
 )
 
 type RateLimitHandler struct {
