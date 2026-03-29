@@ -116,8 +116,6 @@ func (s Server) authRoutes(mux *http.ServeMux) {
 	}
 	client := redisRuleClient.(redisClient.RedisRules).GetClient()
 	authHandler := NewAuthAPIHandler(client)
-
-	mux.HandleFunc("/auth/setup", authHandler.SetupPassword)
 	mux.HandleFunc("/auth/login", authHandler.Login)
 	mux.HandleFunc("/auth/validate", authHandler.ValidateToken)
 	mux.HandleFunc("/auth/logout", authHandler.Logout)
