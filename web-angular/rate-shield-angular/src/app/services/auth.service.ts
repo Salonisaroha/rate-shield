@@ -48,6 +48,9 @@ export class AuthService {
       })
     );
   }
+  clearSession(): void {
+    localStorage.removeItem(TOKEN_KEY);
+  }
   logout(): void {
     const token = this.getToken();
     if (token) {

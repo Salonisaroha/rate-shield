@@ -19,9 +19,13 @@ export class AppComponent implements OnInit {
   constructor(public auth: AuthService) {}
 
   ngOnInit() {
-    this.auth.validateStoredToken().subscribe(() => {
-      this.authChecked = true;
-    });
+    this.auth.clearSession();
+    this.authChecked = true;
+  }
+
+  onLoginSuccess() {
+    this.authChecked = false;
+    setTimeout(() => this.authChecked = true, 0);
   }
 
   onSelectPage(page: string) {

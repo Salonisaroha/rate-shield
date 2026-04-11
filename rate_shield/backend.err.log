@@ -1,0 +1,2 @@
+[90m2026-03-31T19:43:00+05:30[0m [31mFTL[0m [1munable to connect to redis rules instance: redis://localhost:6379[0m [36merror=[0m[31m[1m"dial tcp: address redis://localhost:6379: too many colons in address"[0m[0m
+exit status 1
