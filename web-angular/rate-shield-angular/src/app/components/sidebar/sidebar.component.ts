@@ -16,8 +16,12 @@ export class SidebarComponent implements OnChanges {
   selectedPage = 'DASHBOARD';
   hoveredPage: string | null = null;
   hoveredLogout = false;
+  isOpen = false;
 
   constructor(public auth: AuthService) {}
+
+  toggleSidebar() { this.isOpen = !this.isOpen; }
+  closeSidebar() { this.isOpen = false; }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['externalPage']) {
@@ -38,5 +42,6 @@ export class SidebarComponent implements OnChanges {
   onSelectPage(page: string) {
     this.selectedPage = page;
     this.selectPage.emit(page);
+    this.isOpen = false;
   }
 }
