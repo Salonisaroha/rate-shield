@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -10,7 +10,6 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './login.component.html'
 })
 export class LoginComponent {
-  @Output() loginSuccess = new EventEmitter<void>();
   password = '';
   error = '';
   loading = false;
@@ -29,7 +28,7 @@ export class LoginComponent {
 
     this.auth.login(this.password).subscribe(result => {
       if (result.success) {
-        this.loginSuccess.emit();
+        window.location.reload();
       } else {
         this.error = result.message;
         this.loading = false;

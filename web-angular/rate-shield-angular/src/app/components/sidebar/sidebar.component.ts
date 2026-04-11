@@ -16,10 +16,6 @@ export class SidebarComponent implements OnChanges {
   selectedPage = 'DASHBOARD';
   hoveredPage: string | null = null;
   hoveredLogout = false;
-  isOpen = false;
-
-  toggleSidebar() { this.isOpen = !this.isOpen; }
-  closeSidebar() { this.isOpen = false; }
 
   constructor(public auth: AuthService) {}
 
@@ -42,6 +38,5 @@ export class SidebarComponent implements OnChanges {
   onSelectPage(page: string) {
     this.selectedPage = page;
     this.selectPage.emit(page);
-    this.isOpen = false;
   }
 }
