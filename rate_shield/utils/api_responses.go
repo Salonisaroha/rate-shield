@@ -11,7 +11,7 @@ func InternalError(w http.ResponseWriter, message string) {
 		"error":   "Internal Server Error",
 		"message": message,
 	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
 	bytes, _ := json.Marshal(msg)
 	w.Write(bytes)
@@ -22,8 +22,8 @@ func BadRequestError(w http.ResponseWriter) {
 		"status": "fail",
 		"error":  "Invalid Request Body",
 	}
-
-	w.WriteHeader(http.StatusInternalServerError)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
 	bytes, _ := json.Marshal(msg)
 	w.Write(bytes)
 }
@@ -33,7 +33,7 @@ func MethodNotAllowedError(w http.ResponseWriter) {
 		"status": "fail",
 		"error":  "Method Not Allowed",
 	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusMethodNotAllowed)
 	bytes, _ := json.Marshal(msg)
 	w.Write(bytes)
@@ -44,7 +44,7 @@ func SuccessResponse(data interface{}, w http.ResponseWriter) {
 		"status": "success",
 		"data":   data,
 	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	bytes, _ := json.Marshal(msg)
 	w.Write(bytes)

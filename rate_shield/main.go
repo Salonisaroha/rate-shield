@@ -30,7 +30,7 @@ func main() {
 
 	redisRulesClient, err := redisClient.NewRulesClient()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("unable to connect to redis rules instance")
 	}
 
 	// Create audit client and service
@@ -43,7 +43,7 @@ func main() {
 
 	redisRateLimiter, clusterClient, err := redisClient.NewRedisRateLimitClient()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("unable to connect to redis rate limit cluster")
 	}
 
 	tokenBucketSvc := limiter.NewTokenBucketService(redisRateLimiter, errorNotificationSvc)
@@ -58,7 +58,7 @@ func main() {
 	limiter.StartRateLimiter()
 
 	go func() {
-		server := api.NewServer(&limiter)
+		server := api.NewServer(&limiter, &fixedWindowSvc)
 		log.Fatal().Err(server.StartServer())
 	}()
 

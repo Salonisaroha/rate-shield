@@ -27,6 +27,12 @@ func (h AuditAPIHandler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err := extractEmailFromJWT(r)
+	if err != nil {
+		utils.JSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	query := r.URL.Query()
 
 	// Check for filters

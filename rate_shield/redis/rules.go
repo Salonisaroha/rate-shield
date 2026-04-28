@@ -29,22 +29,12 @@ func (r RedisRules) DeleteRule(key string) error {
 	return nil
 }
 
-func (r RedisRules) GetAllRuleKeys() ([]string, bool, error) {
-	res, err := r.client.Keys(ctx, "*").Result()
+func (r RedisRules) GetAllRuleKeys(prefix string) ([]string, bool, error) {
+	res, err := r.client.Keys(ctx, prefix+"*").Result()
 	if err != nil {
 		return nil, false, nil
 	}
-
-	// Only return keys that look like API endpoints (start with /)
-	// This filters out internal keys like audit:logs, token_bucket_*, etc.
-	ruleKeys := []string{}
-	for _, key := range res {
-		if len(key) > 0 && key[0] == '/' {
-			ruleKeys = append(ruleKeys, key)
-		}
-	}
-
-	return ruleKeys, true, nil
+	return res, true, nil
 }
 
 func (r RedisRules) GetRule(key string) (*models.Rule, bool, error) {

@@ -49,13 +49,13 @@ func StartGRPCServer(limiterSvc *limiter.Limiter, port string) {
 
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("failed to start gRPC listener")
 	}
 
 	log.Info().Msg("gRPC server listening on :" + port + " ✅")
 
 	err = grpcServer.Serve(lis)
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Err(err).Msg("gRPC server stopped")
 	}
 }

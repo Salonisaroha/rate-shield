@@ -8,7 +8,7 @@ import (
 
 type RedisRuleClient interface {
 	GetRule(key string) (*models.Rule, bool, error)
-	GetAllRuleKeys() ([]string, bool, error)
+	GetAllRuleKeys(prefix string) ([]string, bool, error)
 	SetRule(key string, val interface{}) error
 	DeleteRule(key string) error
 	PublishMessage(channel, msg string) error

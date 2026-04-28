@@ -25,6 +25,7 @@ func (h RateLimitHandler) CheckRateLimit(w http.ResponseWriter, r *http.Request)
 	badRequest := utils.ValidateLimitRequest(ip, endpoint)
 	if badRequest != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	resp := h.limiterSvc.CheckLimit(ip, endpoint)
@@ -33,6 +34,7 @@ func (h RateLimitHandler) CheckRateLimit(w http.ResponseWriter, r *http.Request)
 	case 200:
 		w.Header().Set("rate-limit", fmt.Sprint(resp.RateLimit_Limit))
 		w.Header().Set("rate-limit-remaining", fmt.Sprint(resp.RateLimit_Remaining))
+		w.Header().Set("rate-limit-window", fmt.Sprint(resp.RateLimit_Window))
 		w.WriteHeader(http.StatusOK)
 	case 429:
 		w.WriteHeader(http.StatusTooManyRequests)

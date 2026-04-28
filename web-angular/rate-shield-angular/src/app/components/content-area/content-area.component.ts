@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiConfigurationComponent } from '../../pages/api-configuration/api-configuration.component';
 import { AboutComponent } from '../../pages/about/about.component';
@@ -15,24 +15,37 @@ import { UseCasesComponent } from '../../pages/use-cases/use-cases.component';
   templateUrl: './content-area.component.html',
   styleUrls: ['./content-area.component.css']
 })
-export class ContentAreaComponent {
+export class ContentAreaComponent implements OnChanges {
   @Input() selectedPage: string = 'DASHBOARD';
   @Output() pageChange = new EventEmitter<string>();
 
   testerPrefillIp = '';
   testerPrefillEndpoint = '';
+  private navigatingViaTryIt = false;
+
+  ngOnChanges(changes: SimpleChanges) {
+    const page = changes['selectedPage']?.currentValue;
+    if (page === 'HEALTH_CHECK' && !this.navigatingViaTryIt) {
+      this.testerPrefillIp = '';
+      this.testerPrefillEndpoint = '';
+    }
+    this.navigatingViaTryIt = false;
+  }
 
   onNavigateTo(page: string) {
+    if (page === 'HEALTH_CHECK') {
+      this.testerPrefillIp = '';
+      this.testerPrefillEndpoint = '';
+    }
     this.selectedPage = page;
     this.pageChange.emit(page);
   }
 
   onTryInTester(data: { ip: string; endpoint: string }) {
-    // Navigate first so health-check component is created
+    this.navigatingViaTryIt = true;
     this.selectedPage = 'HEALTH_CHECK';
-    // Use setTimeout to ensure the component exists before inputs are set
     setTimeout(() => {
-      this.testerPrefillIp = data.ip + '|' + Date.now(); // force change detection
+      this.testerPrefillIp = data.ip + '|' + Date.now();
       this.testerPrefillEndpoint = data.endpoint;
     }, 0);
   }

@@ -19,7 +19,7 @@ func NewFixedWindowService(client redisClient.RedisRateLimiterClient) FixedWindo
 	}
 }
 
-func (fw *FixedWindowService) processRequest(ip, endpoint string, rule *models.Rule) *models.RateLimitResponse {
+func (fw *FixedWindowService) ProcessRequest(ip, endpoint string, rule *models.Rule) *models.RateLimitResponse {
 	key := fw.parseToKey(ip, endpoint)
 
 	fixedWindow, response := fw.prepareFixedWindow(ip, endpoint, rule)
@@ -43,17 +43,18 @@ func (fw *FixedWindowService) prepareFixedWindow(ip, endpoint string, rule *mode
 		if err != nil {
 			return nil, fw.handleError(err, "unable to get newly spawned fixed window from redis")
 		}
-		return fixedWindow, utils.BuildRateLimitSuccessResponse(fixedWindow.MaxRequests, fixedWindow.MaxRequests-1)
+		return fixedWindow, utils.BuildRateLimitSuccessResponse(fixedWindow.MaxRequests, fixedWindow.MaxRequests-1, fixedWindow.Window)
 	}
 
 	return fixedWindow, nil
 }
 
 func (fw *FixedWindowService) handleRateLimit(fixedWindow *models.FixedWindowCounter, key string, currTime int64) *models.RateLimitResponse {
-	if currTime-fixedWindow.CreatedAt < int64(fixedWindow.Window) {
-		return fw.processWithinTimeWindow(fixedWindow, key, currTime)
+	// Window has expired — reset it
+	if currTime-fixedWindow.CreatedAt >= int64(fixedWindow.Window) {
+		return fw.ResetWindow(key, currTime, fixedWindow)
 	}
-	return fw.ResetWindow(key, currTime, fixedWindow)
+	return fw.processWithinTimeWindow(fixedWindow, key, currTime)
 }
 
 func (fw *FixedWindowService) processWithinTimeWindow(fixedWindow *models.FixedWindowCounter, key string, currTime int64) *models.RateLimitResponse {
@@ -70,7 +71,7 @@ func (fw *FixedWindowService) saveFixedWindow(key string, fixedWindow *models.Fi
 	if err != nil {
 		return fw.handleError(err, "error while saving fixed window")
 	}
-	return utils.BuildRateLimitSuccessResponse(fixedWindow.MaxRequests, fixedWindow.MaxRequests-fixedWindow.CurrRequests)
+	return utils.BuildRateLimitSuccessResponse(fixedWindow.MaxRequests, fixedWindow.MaxRequests-fixedWindow.CurrRequests, fixedWindow.Window)
 }
 
 func (fw *FixedWindowService) handleError(err error, msg string) *models.RateLimitResponse {
@@ -80,8 +81,14 @@ func (fw *FixedWindowService) handleError(err error, msg string) *models.RateLim
 
 func (fw *FixedWindowService) ResetWindow(key string, currTime int64, fixedWindow *models.FixedWindowCounter) *models.RateLimitResponse {
 	fixedWindow.CurrRequests = 1
+	fixedWindow.CreatedAt = currTime
 	fixedWindow.LastAccessTime = currTime
-	return fw.saveFixedWindow(key, fixedWindow)
+	resp := fw.saveFixedWindow(key, fixedWindow)
+	if resp.Success {
+		// Reset the Redis TTL so the new window expires correctly
+		fw.redisClient.Expire(key, time.Duration(fixedWindow.Window)*time.Second)
+	}
+	return resp
 }
 
 func (fw *FixedWindowService) getFixedWindowFromRedis(key string) (*models.FixedWindowCounter, bool, error) {

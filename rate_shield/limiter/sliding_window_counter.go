@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/salonisaroha/RateShield/models"
 	"github.com/salonisaroha/RateShield/utils"
@@ -35,7 +36,7 @@ func (s *SlidingWindowService) processRequest(ip, endpoint string, rule *models.
 		return utils.BuildRateLimitErrorResponse(500)
 	}
 
-	if count > rule.SlidingWindowCounterRule.MaxRequests {
+	if count >= rule.SlidingWindowCounterRule.MaxRequests {
 		return utils.BuildRateLimitErrorResponse(429)
 	}
 
@@ -44,16 +45,21 @@ func (s *SlidingWindowService) processRequest(ip, endpoint string, rule *models.
 		return utils.BuildRateLimitErrorResponse(500)
 	}
 
-	return utils.BuildRateLimitSuccessResponse(rule.SlidingWindowCounterRule.MaxRequests, rule.SlidingWindowCounterRule.MaxRequests-count)
+	return utils.BuildRateLimitSuccessResponse(
+		rule.SlidingWindowCounterRule.MaxRequests,
+		rule.SlidingWindowCounterRule.MaxRequests-count-1,
+		int(windowSize.Seconds()),
+	)
 }
 
 func (s *SlidingWindowService) removeOldRequestsAndCountActiveRequests(key string, now int64, windowSize time.Duration) (int64, error) {
-	then := fmt.Sprintf("%d", now-int64(windowSize.Seconds()))
+	windowStart := now - int64(windowSize.Seconds())
 
 	pipe := s.redisClient.TxPipeline()
-	pipe.ZRemRangeByScore(ctx, key, "0", then)
-
-	countCmd := pipe.ZCount(ctx, key, then, fmt.Sprintf("%d", now))
+	// Remove entries strictly older than the window start (exclusive upper bound)
+	pipe.ZRemRangeByScore(ctx, key, "0", fmt.Sprintf("(%d", windowStart))
+	// Count entries within the window
+	countCmd := pipe.ZCount(ctx, key, fmt.Sprintf("%d", windowStart), fmt.Sprintf("%d", now))
 
 	_, err := pipe.Exec(ctx)
 	if err != nil {
@@ -71,7 +77,7 @@ func (s *SlidingWindowService) updateWindow(key string, now int64, windowSize ti
 	pipe := s.redisClient.TxPipeline()
 
 	pipe.ZAdd(ctx, key, redis.Z{
-		Member: now,
+		Member: fmt.Sprintf("%d-%s", now, uuid.NewString()),
 		Score:  float64(now),
 	})
 

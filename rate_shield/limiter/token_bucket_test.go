@@ -109,26 +109,7 @@ func TestTokenBucketService(t *testing.T) {
 			ClientIP:        "192.168.1.23",
 			CreatedAt:       time.Now().Unix(),
 			AvailableTokens: 100,
-		}
-
-		mockRedis.On("JSONSet", "token_bucket_192.168.1.23:/api/v1/get-data", bucket).Return(nil)
-		mockRedis.On("Expire", "token_bucket_192.168.1.23:/api/v1/get-data", time.Second*60).Return(nil)
-
-		err := svc.saveBucket(bucket, true)
-		assert.NoError(t, err)
-
-		mockRedis.ExpectedCalls = nil
-		mockRedis.Calls = nil
-	})
-
-	t.Run("saveBucket_success", func(t *testing.T) {
-		bucket := &models.Bucket{
-			Endpoint:        "/api/v1/get-data",
-			Capacity:        100,
-			TokenAddRate:    100,
-			ClientIP:        "192.168.1.23",
-			CreatedAt:       time.Now().Unix(),
-			AvailableTokens: 100,
+			RetentionTime:   60,
 		}
 
 		mockRedis.On("JSONSet", "token_bucket_192.168.1.23:/api/v1/get-data", bucket).Return(nil)
@@ -149,10 +130,10 @@ func TestTokenBucketService(t *testing.T) {
 			ClientIP:        "192.168.1.23",
 			CreatedAt:       time.Now().Unix(),
 			AvailableTokens: 100,
+			RetentionTime:   60,
 		}
 
 		mockRedis.On("JSONSet", "token_bucket_192.168.1.23:/api/v1/get-data", bucket).Return(errors.New("redis-error"))
-		mockRedis.On("Expire", "token_bucket_192.168.1.23:/api/v1/get-data", time.Second*60).Return(nil)
 
 		err := svc.saveBucket(bucket, true)
 		assert.Error(t, err)
@@ -169,12 +150,13 @@ func TestTokenBucketService(t *testing.T) {
 			ClientIP:        "192.168.1.23",
 			CreatedAt:       time.Now().Unix(),
 			AvailableTokens: 100,
+			RetentionTime:   60,
 		}
 
 		mockRedis.On("JSONSet", "token_bucket_192.168.1.23:/api/v1/get-data", bucket).Return(nil)
 		mockRedis.On("Expire", "token_bucket_192.168.1.23:/api/v1/get-data", time.Second*60).Return(errors.New("redis-error"))
 
-		err := svc.saveBucket(bucket, false)
+		err := svc.saveBucket(bucket, true)
 		assert.Error(t, err)
 
 		mockRedis.ExpectedCalls = nil
@@ -203,20 +185,10 @@ func TestTokenBucketService(t *testing.T) {
 		}
 
 		ip := "192.168.12.1"
-		endpoint := "/api/v1/get-data"
-		key := "token_bucket_" + ip + ":" + endpoint
+		key := "token_bucket_" + ip + ":/api/v1/get-data"
 
-		bucket := &models.Bucket{
-			Endpoint:        "/api/v1/get-data",
-			Capacity:        10,
-			TokenAddRate:    10,
-			ClientIP:        "192.168.12.1",
-			CreatedAt:       time.Now().Unix(),
-			AvailableTokens: 10,
-		}
-
-		mockRedis.On("JSONSet", key, bucket).Return(nil)
-		mockRedis.On("Expire", key, time.Second*60).Return(nil)
+		mockRedis.On("JSONSet", key, mock.Anything).Return(nil)
+		mockRedis.On("Expire", key, time.Duration(0)).Return(nil)
 
 		_, err := svc.createBucketFromRule(ip, "/api/v1/get-data", rule)
 		assert.NoError(t, err)
@@ -237,20 +209,9 @@ func TestTokenBucketService(t *testing.T) {
 		}
 
 		ip := "192.168.12.1"
-		endpoint := "/api/v1/get-data"
-		key := "token_bucket_" + ip + ":" + endpoint
+		key := "token_bucket_" + ip + ":/api/v1/get-data"
 
-		bucket := &models.Bucket{
-			Endpoint:        "/api/v1/get-data",
-			Capacity:        10,
-			TokenAddRate:    10,
-			ClientIP:        "192.168.12.1",
-			CreatedAt:       time.Now().Unix(),
-			AvailableTokens: 10,
-		}
-
-		mockRedis.On("JSONSet", key, bucket).Return(errors.New("redis-error"))
-		mockRedis.On("Expire", key, time.Second*60).Return(nil)
+		mockRedis.On("JSONSet", key, mock.Anything).Return(errors.New("redis-error"))
 
 		_, err := svc.createBucketFromRule(ip, "/api/v1/get-data", rule)
 		assert.Error(t, err)

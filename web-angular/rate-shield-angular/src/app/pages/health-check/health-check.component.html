@@ -18,17 +18,17 @@
         <div class="space-y-3">
           <div>
             <label class="form-label">Client IP</label>
-            <input [(ngModel)]="ip" type="text" placeholder="e.g. 192.168.1.1" class="rs-input w-full" />
+            <input [(ngModel)]="ip" type="text" placeholder="e.g. 192.168.1.1" class="rs-input w-full" [disabled]="simulating" />
           </div>
           <div>
             <label class="form-label">Endpoint</label>
-            <input [(ngModel)]="endpoint" type="text" placeholder="e.g. /api/v1/users" class="rs-input w-full font-mono" />
+            <input [(ngModel)]="endpoint" type="text" placeholder="e.g. /api/v1/users" class="rs-input w-full font-mono" [disabled]="simulating" />
           </div>
         </div>
         <div class="flex gap-2 mt-4">
           <button
             (click)="test()"
-            [disabled]="testing"
+            [disabled]="testing || simulating"
             class="btn-primary flex-1 disabled:opacity-50">
             {{ testing ? 'Sending...' : 'Send Request' }}
           </button>
@@ -73,9 +73,23 @@
               [style.width]="lastStatus !== null ? capacityPercent + '%' : '0%'">
             </div>
           </div>
-          <div *ngIf="isBlocked" class="mt-3 text-xs text-red-600 font-medium text-center bg-red-50 rounded-lg py-2 animate-pulse">
-            🚫 Rate limit exceeded — requests are being blocked
+
+          <!-- Rate limited banner with countdown -->
+          <div *ngIf="isBlocked" class="mt-3 bg-red-50 rounded-lg py-2 px-3">
+            <p class="text-xs text-red-600 font-medium text-center animate-pulse">
+              🚫 Rate limit exceeded — requests are being blocked
+            </p>
+            <p *ngIf="windowCountdown > 0" class="text-xs text-red-400 text-center mt-1">
+              Window resets in <span class="font-bold text-red-600">{{ windowCountdown }}s</span>
+            </p>
           </div>
+
+          <!-- Window reset notice -->
+          <div *ngIf="!isBlocked && lastStatus === 200 && history[0]?.windowReset"
+            class="mt-3 bg-blue-50 rounded-lg py-2 px-3 text-center">
+            <p class="text-xs text-blue-600 font-medium">🔄 Window reset — counter restarted from 0</p>
+          </div>
+
           <div *ngIf="noRuleFound" class="mt-3 text-xs text-yellow-700 font-medium text-center bg-yellow-50 rounded-lg py-2">
             ⚠️ No rule found for this endpoint — create one in API Configuration first
           </div>
@@ -101,25 +115,52 @@
         <div
           *ngFor="let h of history; let i = index"
           class="flex items-center gap-3 text-xs py-2 px-3 rounded-lg"
-          [class.bg-slate-50]="i === 0">
+          [class.bg-slate-50]="i === 0"
+          [class.bg-blue-50]="h.windowReset">
+
+          <!-- Status badge -->
           <span
             class="badge w-16 justify-center shrink-0"
-            [ngClass]="h.blocked ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'">
+            [ngClass]="h.blocked ? 'bg-red-50 text-red-600' : h.windowReset ? 'bg-blue-100 text-blue-700' : 'bg-emerald-50 text-emerald-700'">
             {{ h.status }}
           </span>
+
+          <!-- Progress bar -->
           <div class="flex-1 min-w-0">
             <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
               <div
                 class="h-1.5 rounded-full transition-all"
-                [ngClass]="h.blocked ? 'bg-red-400' : (h.remaining !== null && h.limit ? (h.remaining / h.limit <= 0.2 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-slate-300')"
+                [ngClass]="h.blocked ? 'bg-red-400' : h.windowReset ? 'bg-blue-400' : (h.remaining !== null && h.limit ? (h.remaining / h.limit <= 0.2 ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-slate-300')"
                 [style.width]="h.limit && h.remaining !== null ? (h.remaining / h.limit * 100) + '%' : (h.blocked ? '0%' : '100%')">
               </div>
             </div>
           </div>
+
+          <!-- Remaining/limit or reset label -->
           <span class="text-slate-500 shrink-0 font-mono">
-            {{ h.remaining !== null ? h.remaining : '—' }}/{{ h.limit !== null ? h.limit : '—' }}
+            <ng-container *ngIf="h.windowReset">🔄 reset</ng-container>
+            <ng-container *ngIf="!h.windowReset">
+              {{ h.remaining !== null ? h.remaining : '—' }}/{{ h.limit !== null ? h.limit : '—' }}
+            </ng-container>
           </span>
+
           <span class="text-slate-300 shrink-0">{{ h.timestamp | date:'HH:mm:ss' }}</span>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div *ngIf="history.length > 0" class="flex gap-3 mt-3 pt-3 border-t border-slate-100 shrink-0">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+          <span class="text-xs text-slate-400">Allowed</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
+          <span class="text-xs text-slate-400">Blocked (429)</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span>
+          <span class="text-xs text-slate-400">Window reset</span>
         </div>
       </div>
     </div>

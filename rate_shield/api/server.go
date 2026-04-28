@@ -13,14 +13,16 @@ import (
 )
 
 type Server struct {
-	port    int
-	limiter *limiter.Limiter
+	port        int
+	limiter     *limiter.Limiter
+	fixedWindow *limiter.FixedWindowService
 }
 
-func NewServer(limiter *limiter.Limiter) Server {
+func NewServer(l *limiter.Limiter, fw *limiter.FixedWindowService) Server {
 	return Server{
-		port:    getPort(),
-		limiter: limiter,
+		port:        getPort(),
+		limiter:     l,
+		fixedWindow: fw,
 	}
 }
 
@@ -28,9 +30,15 @@ func (s Server) StartServer() error {
 	log.Info().Msgf("Setting Up API endpoints in port: %d ✅", s.port)
 	mux := http.NewServeMux()
 
-	s.rulesRoutes(mux)
-	s.auditRoutes(mux)
-	s.authRoutes(mux)
+	// Create a single shared Redis client for all route handlers
+	sharedRedisClient, err := redisClient.NewRulesClient()
+	if err != nil {
+		log.Fatal().Err(err).Msg("unable to setup shared redis client")
+	}
+
+	s.rulesRoutes(mux, sharedRedisClient)
+	s.auditRoutes(mux, sharedRedisClient)
+	s.authRoutes(mux, sharedRedisClient)
 	s.registerRateLimiterRoutes(mux)
 	s.setupHome(mux)
 
@@ -43,7 +51,7 @@ func (s Server) StartServer() error {
 
 	log.Info().Msg("Rate Shield running on port: " + fmt.Sprintf("%d", s.port) + " ✅")
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		log.Err(err).Msg("unable to start server")
 		return err
@@ -56,7 +64,7 @@ func (s Server) setupCORS(h http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, ip, endpoint")
-		w.Header().Set("Access-Control-Expose-Headers", "rate-limit, rate-limit-remaining")
+		w.Header().Set("Access-Control-Expose-Headers", "rate-limit, rate-limit-remaining, rate-limit-window")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -67,18 +75,9 @@ func (s Server) setupCORS(h http.Handler) http.Handler {
 	})
 }
 
-func (s Server) rulesRoutes(mux *http.ServeMux) {
-	redisRuleClient, err := redisClient.NewRulesClient()
-	if err != nil {
-		log.Err(err).Msg("unable to setup new redis rules client")
-		log.Fatal()
-	}
-
-	// Create audit client and service
+func (s Server) rulesRoutes(mux *http.ServeMux, redisRuleClient redisClient.RedisRuleClient) {
 	auditClient := redisClient.NewAuditClient(redisRuleClient.(redisClient.RedisRules).GetClient())
 	auditSvc := service.NewAuditService(auditClient)
-
-	// Create rules service with audit service
 	rulesSvc := service.NewRedisRulesService(redisRuleClient, auditSvc)
 	rulesHandler := NewRulesAPIHandler(rulesSvc)
 
@@ -88,18 +87,10 @@ func (s Server) rulesRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/rule/search", rulesHandler.SearchRules)
 }
 
-func (s Server) auditRoutes(mux *http.ServeMux) {
-	redisRuleClient, err := redisClient.NewRulesClient()
-	if err != nil {
-		log.Err(err).Msg("unable to setup new redis rules client for audit")
-		log.Fatal()
-	}
-
-	// Create audit client and service
+func (s Server) auditRoutes(mux *http.ServeMux, redisRuleClient redisClient.RedisRuleClient) {
 	auditClient := redisClient.NewAuditClient(redisRuleClient.(redisClient.RedisRules).GetClient())
 	auditSvc := service.NewAuditService(auditClient)
 	auditHandler := NewAuditAPIHandler(auditSvc)
-
 	mux.HandleFunc("/audit/logs", auditHandler.ListAuditLogs)
 }
 
@@ -108,31 +99,37 @@ func (s Server) registerRateLimiterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/check-limit", rateLimiterHandler.CheckRateLimit)
 }
 
-func (s Server) authRoutes(mux *http.ServeMux) {
-	redisRuleClient, err := redisClient.NewRulesClient()
-	if err != nil {
-		log.Err(err).Msg("unable to setup redis client for auth")
-		log.Fatal()
-	}
+func (s Server) authRoutes(mux *http.ServeMux, redisRuleClient redisClient.RedisRuleClient) {
 	client := redisRuleClient.(redisClient.RedisRules).GetClient()
 	authHandler := NewAuthAPIHandler(client)
-	mux.HandleFunc("/auth/login", authHandler.Login)
+	// IP-based rate limiting: protects against bot signups and brute force from same IP
+	mux.HandleFunc("/auth/register", ipRateLimitMiddleware("/auth/register", s.fixedWindow, authHandler.Register))
+	mux.HandleFunc("/auth/login", ipRateLimitMiddleware("/auth/login", s.fixedWindow, authHandler.Login))
+	mux.HandleFunc("/auth/google", ipRateLimitMiddleware("/auth/google", s.fixedWindow, authHandler.GoogleLogin))
+	// Email-based rate limiting: protects OTP endpoints per target email, not per IP
+	mux.HandleFunc("/auth/verify-otp", emailRateLimitMiddleware("/auth/verify-otp", s.fixedWindow, authHandler.VerifyOTP))
+	mux.HandleFunc("/auth/resend-otp", emailRateLimitMiddleware("/auth/resend-otp", s.fixedWindow, authHandler.ResendOTP))
 	mux.HandleFunc("/auth/validate", authHandler.ValidateToken)
 	mux.HandleFunc("/auth/logout", authHandler.Logout)
+	mux.HandleFunc("/auth/google/callback", authHandler.GoogleCallback)
+
+	statsHandler := NewStatsAPIHandler(redisRuleClient)
+	mux.HandleFunc("/stats", statsHandler.GetStats)
 }
 
 func (s Server) setupHome(mux *http.ServeMux) {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html")
-
 		wd, wdError := os.Getwd()
-
 		homepage, err := os.ReadFile(wd + "/static/" + "index.html")
 		if err != nil || wdError != nil {
-			fmt.Println(err)
-			w.Write([]byte("Rate Shield is running. Open frontend client on port 5173. If it does not work make sure react application is running."))
+			w.Write([]byte("Rate Shield is running. Open frontend client on port 5173."))
+			return
 		}
-
 		fmt.Fprint(w, string(homepage))
 	})
 }

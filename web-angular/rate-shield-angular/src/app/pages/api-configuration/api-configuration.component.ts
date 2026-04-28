@@ -25,6 +25,8 @@ export class ApiConfigurationComponent implements OnInit {
   selectedRule: Rule | null = null;
   action: string = 'ADD';
 
+  private isFirstLoad = true;
+
   // Subject that cancels any in-flight fetch when a new one is triggered
   private fetchTrigger$ = new Subject<number>();
 
@@ -42,9 +44,10 @@ export class ApiConfigurationComponent implements OnInit {
           (rule, index, self) => index === self.findIndex(r => r.endpoint === rule.endpoint)
         );
         this.hasNextPage = response.data?.has_next_page ?? false;
-        if (this.rulesData.length === 0) {
+        if (this.rulesData.length === 0 && this.isFirstLoad) {
           this.toastr.info('No rules found. Start by creating one.');
         }
+        this.isFirstLoad = false;
       },
       error: (error) => {
         this.toastr.error('Failed to fetch rules: ' + (error.message || error));

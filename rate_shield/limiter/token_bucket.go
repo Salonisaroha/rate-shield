@@ -1,14 +1,12 @@
 package limiter
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-co-op/gocron/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/salonisaroha/RateShield/models"
 	redisClient "github.com/salonisaroha/RateShield/redis"
@@ -140,26 +138,11 @@ func (t *TokenBucketService) getBucket(key string) (*models.Bucket, bool, error)
 	return &tokenBucket, true, nil
 }
 
-func (t *TokenBucketService) addTokens() {
-	ctx := context.TODO()
-	keys, err := redisClient.TokenBucketClient.Keys(ctx, "token_bucket_*").Result()
-	if err != nil {
-		log.Error().Err(err).Msg("Unable to get Redis keys")
-		return
-	}
-
-	log.Info().Msgf("Total Keys: %d", len(keys))
-
-	for _, key := range keys {
-		t.addTokensToBucket(key)
-	}
-
-}
 
 func (t *TokenBucketService) processRequest(key string, rule *models.Rule) *models.RateLimitResponse {
 	bucket, found, err := t.getBucket(key)
 	if err != nil {
-		log.Error().Msgf("error while getting bucket %s" + err.Error())
+		log.Error().Err(err).Msg("error while getting bucket " + key)
 		return utils.BuildRateLimitErrorResponse(500)
 	}
 
@@ -168,7 +151,25 @@ func (t *TokenBucketService) processRequest(key string, rule *models.Rule) *mode
 		if err != nil {
 			return utils.BuildRateLimitErrorResponse(500)
 		}
-		bucket = b
+		// First request: bucket created with full capacity, consume 1 token now
+		b.AvailableTokens--
+		if err := t.saveBucket(b, false); err != nil {
+			return utils.BuildRateLimitErrorResponse(500)
+		}
+		return &models.RateLimitResponse{
+			RateLimit_Limit:     int64(b.Capacity),
+			RateLimit_Remaining: int64(b.AvailableTokens),
+			Success:             true,
+			HTTPStatusCode:      http.StatusOK,
+		}
+	}
+
+	// Refill tokens based on elapsed time since last refill
+	elapsed := time.Since(bucket.LastRefill).Seconds()
+	if elapsed >= 1 && bucket.AvailableTokens < bucket.Capacity {
+		tokensToAdd := int(elapsed) * bucket.TokenAddRate
+		bucket.AvailableTokens = min(bucket.Capacity, bucket.AvailableTokens+tokensToAdd)
+		bucket.LastRefill = time.Now()
 	}
 
 	if bucket.AvailableTokens <= 0 {
@@ -205,23 +206,6 @@ func (t *TokenBucketService) saveBucket(bucket *models.Bucket, isNewBucket bool)
 	}
 
 	return nil
-}
-
-func (t *TokenBucketService) startAddTokenJob() {
-	s, err := gocron.NewScheduler()
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = s.NewJob(gocron.DurationJob(TokenAddTime), gocron.NewTask(func() {
-		t.addTokens()
-	}))
-
-	if err != nil {
-		panic(err)
-	}
-
-	s.Start()
 }
 
 func (t *TokenBucketService) sendGetBucketErrorNotification(key string, err error) {

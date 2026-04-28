@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,34 +19,6 @@ func NewRulesAPIHandler(svc service.RulesService) RulesAPIHandler {
 	return RulesAPIHandler{
 		rulesSvc: svc,
 	}
-}
-
-// extractActorInfo extracts actor information from request headers
-// Priority: X-User-ID > Authorization (parsed) > "anonymous"
-func extractActorInfo(r *http.Request) string {
-	// Check for X-User-ID header first
-	userID := r.Header.Get("X-User-ID")
-	if userID != "" {
-		return userID
-	}
-
-	// Check Authorization header and try to extract user info
-	authHeader := r.Header.Get("Authorization")
-	if authHeader != "" {
-		// Simple extraction: remove "Bearer " prefix if present
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			token := strings.TrimPrefix(authHeader, "Bearer ")
-			// Return first 8 characters of token as identifier
-			if len(token) > 8 {
-				return "token:" + token[:8] + "..."
-			}
-			return "token:" + token
-		}
-		return "auth:provided"
-	}
-
-	// Default to anonymous
-	return "anonymous"
 }
 
 // extractIPAddress extracts the client IP address from the request
@@ -75,27 +48,49 @@ func extractIPAddress(r *http.Request) string {
 	return ip
 }
 
+// extractEmailFromJWT parses the JWT from Authorization header and returns the email (sub claim)
+func extractEmailFromJWT(r *http.Request) (string, error) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return "", fmt.Errorf("missing token")
+	}
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+	claims, err := parseJWT(tokenStr)
+	if err != nil {
+		return "", err
+	}
+	email, ok := claims["sub"].(string)
+	if !ok || email == "" {
+		return "", fmt.Errorf("invalid token claims")
+	}
+	return email, nil
+}
+
 func (h RulesAPIHandler) ListAllRules(w http.ResponseWriter, r *http.Request) {
+	email, err := extractEmailFromJWT(r)
+	if err != nil {
+		utils.JSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
 	page := r.URL.Query().Get("page")
 	items := r.URL.Query().Get("items")
 
 	if page != "" && items != "" {
 		pageInt, pageIntErr := strconv.Atoi(page)
 		itemsInt, itemsIntErr := strconv.Atoi(items)
-
 		if pageIntErr != nil || itemsIntErr != nil {
 			utils.BadRequestError(w)
 			return
 		}
-
-		rules, err := h.rulesSvc.GetPaginatedRules(pageInt, itemsInt)
+		rules, err := h.rulesSvc.GetPaginatedRules(pageInt, itemsInt, email)
 		if err != nil {
 			utils.InternalError(w, err.Error())
 			return
 		}
 		utils.SuccessResponse(rules, w)
 	} else {
-		rules, err := h.rulesSvc.GetAllRules()
+		rules, err := h.rulesSvc.GetAllRules(email)
 		if err != nil {
 			utils.InternalError(w, err.Error())
 			return
@@ -105,75 +100,82 @@ func (h RulesAPIHandler) ListAllRules(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h RulesAPIHandler) SearchRules(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-
-	searchText := q.Get("endpoint")
+	email, err := extractEmailFromJWT(r)
+	if err != nil {
+		utils.JSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+	searchText := r.URL.Query().Get("endpoint")
 	if len(searchText) == 0 {
 		utils.BadRequestError(w)
 		return
 	}
-
-	rules, err := h.rulesSvc.SearchRule(searchText)
+	rules, err := h.rulesSvc.SearchRule(searchText, email)
 	if err != nil {
 		utils.InternalError(w, err.Error())
 		return
 	}
-
 	utils.SuccessResponse(rules, w)
 }
 
 func (h RulesAPIHandler) CreateOrUpdateRule(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
-		// Preflight
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	if r.Method == http.MethodPost {
-		updateReq, err := utils.ParseAPIBody[models.Rule](r)
-		if err != nil {
-			utils.BadRequestError(w)
-			return
-		}
-
-		// Extract audit information
-		actor := extractActorInfo(r)
-		ipAddress := extractIPAddress(r)
-		userAgent := r.UserAgent()
-
-		err = h.rulesSvc.CreateOrUpdateRule(updateReq, actor, ipAddress, userAgent)
-		if err != nil {
-			utils.InternalError(w, err.Error())
-			return
-		}
-
-		utils.SuccessResponse("Rule Created Successfully", w)
-	} else {
+	if r.Method != http.MethodPost {
 		utils.MethodNotAllowedError(w)
+		return
 	}
+
+	email, err := extractEmailFromJWT(r)
+	if err != nil {
+		utils.JSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	updateReq, err := utils.ParseAPIBody[models.Rule](r)
+	if err != nil {
+		utils.BadRequestError(w)
+		return
+	}
+
+	actor := email
+	ipAddress := extractIPAddress(r)
+	userAgent := r.UserAgent()
+
+	if err := h.rulesSvc.CreateOrUpdateRule(updateReq, actor, ipAddress, userAgent, email); err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.SuccessResponse("Rule Created Successfully", w)
 }
 
 func (h RulesAPIHandler) DeleteRule(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		deleteReq, err := utils.ParseAPIBody[models.DeleteRuleDTO](r)
-		if err != nil {
-			utils.BadRequestError(w)
-			return
-		}
-
-		// Extract audit information
-		actor := extractActorInfo(r)
-		ipAddress := extractIPAddress(r)
-		userAgent := r.UserAgent()
-
-		err = h.rulesSvc.DeleteRule(deleteReq.RuleKey, actor, ipAddress, userAgent)
-		if err != nil {
-			utils.InternalError(w, err.Error())
-			return
-		}
-
-		utils.SuccessResponse("Rule Deleted Successfully", w)
-	} else {
+	if r.Method != http.MethodPost {
 		utils.MethodNotAllowedError(w)
+		return
 	}
+
+	email, err := extractEmailFromJWT(r)
+	if err != nil {
+		utils.JSONError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	deleteReq, err := utils.ParseAPIBody[models.DeleteRuleDTO](r)
+	if err != nil {
+		utils.BadRequestError(w)
+		return
+	}
+
+	actor := email
+	ipAddress := extractIPAddress(r)
+	userAgent := r.UserAgent()
+
+	if err := h.rulesSvc.DeleteRule(deleteReq.RuleKey, actor, ipAddress, userAgent, email); err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.SuccessResponse("Rule Deleted Successfully", w)
 }

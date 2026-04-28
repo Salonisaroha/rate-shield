@@ -11,6 +11,7 @@ interface TestResult {
   remaining: number | null;
   timestamp: Date;
   blocked: boolean;
+  windowReset: boolean;
 }
 
 @Component({
@@ -31,7 +32,6 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
     const newIp = changes['prefillIp']?.currentValue;
     const newEndpoint = changes['prefillEndpoint']?.currentValue;
     if (newIp) {
-      // Strip the timestamp suffix added to force change detection (format: "ip|timestamp")
       this.ip = newIp.includes('|') ? newIp.split('|')[0] : newIp;
       this.reset();
     }
@@ -42,11 +42,19 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
 
   limit: number | null = null;
   remaining: number | null = null;
+  window: number | null = null;
   lastStatus: number | null = null;
   isBlocked = false;
   testing = false;
   simulating = false;
   noRuleFound = false;
+  requestInFlight = false;
+
+  windowResetAt: Date | null = null;
+  windowCountdown = 0;
+  private wasBlocked = false;
+  private blockedAt: Date | null = null;
+  private countdownSub?: Subscription;
 
   history: TestResult[] = [];
   private simSub?: Subscription;
@@ -55,11 +63,14 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
 
   ngOnDestroy() {
     this.simSub?.unsubscribe();
+    this.countdownSub?.unsubscribe();
   }
 
   test() {
     if (!this.ip.trim() || !this.endpoint.trim()) return;
+    if (this.requestInFlight) return;
     this.testing = true;
+    this.requestInFlight = true;
 
     const headers = new HttpHeaders({
       'ip': this.ip.trim(),
@@ -74,20 +85,40 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
 
   private handleResponse(status: number, headers: any) {
     this.testing = false;
-    this.lastStatus = status;
-    this.isBlocked = status === 429;
+    this.requestInFlight = false;
 
     const limitVal = headers?.get('rate-limit');
     const remainingVal = headers?.get('rate-limit-remaining');
+    const windowVal = headers?.get('rate-limit-window');
+
+    const isWindowReset = this.wasBlocked && status === 200;
+
+    this.lastStatus = status;
+    this.isBlocked = status === 429;
 
     if (status === 200) {
       if (limitVal !== null && limitVal !== undefined) this.limit = +limitVal;
       if (remainingVal !== null && remainingVal !== undefined) this.remaining = +remainingVal;
-      // If no headers returned, rule was not found — limit stays null
-      this.noRuleFound = (limitVal === null || limitVal === undefined);
+      if (windowVal !== null && windowVal !== undefined && +windowVal > 0) this.window = +windowVal;
+      this.noRuleFound = (limitVal === null || limitVal === undefined || +limitVal === 0);
+      if (this.noRuleFound) { this.limit = null; this.remaining = null; }
+
+      if (isWindowReset) {
+        this.windowResetAt = null;
+        this.windowCountdown = 0;
+        this.countdownSub?.unsubscribe();
+      }
+      this.wasBlocked = false;
+      this.blockedAt = null;
     } else if (status === 429) {
       this.remaining = 0;
       this.noRuleFound = false;
+
+      if (!this.wasBlocked) {
+        this.blockedAt = new Date();
+        this.startCountdown();
+      }
+      this.wasBlocked = true;
     }
 
     this.history.unshift({
@@ -95,10 +126,26 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
       limit: this.limit,
       remaining: this.remaining,
       timestamp: new Date(),
-      blocked: status === 429
+      blocked: status === 429,
+      windowReset: isWindowReset
     });
 
     if (this.history.length > 20) this.history.pop();
+  }
+
+  private startCountdown() {
+    this.countdownSub?.unsubscribe();
+    // Use actual window from rate-limit-window header, fallback to 60s
+    const windowSecs = this.window !== null && this.window > 0 ? this.window : 60;
+    this.windowCountdown = windowSecs;
+    this.windowResetAt = new Date(Date.now() + windowSecs * 1000);
+
+    this.countdownSub = interval(1000).subscribe(() => {
+      this.windowCountdown = Math.max(0, Math.round((this.windowResetAt!.getTime() - Date.now()) / 1000));
+      if (this.windowCountdown <= 0) {
+        this.countdownSub?.unsubscribe();
+      }
+    });
   }
 
   toggleSimulate() {
@@ -108,18 +155,26 @@ export class HealthCheckComponent implements OnDestroy, OnChanges {
     } else {
       this.simulating = true;
       this.test();
-      this.simSub = interval(800).subscribe(() => this.test());
+      this.simSub = interval(1000).subscribe(() => this.test());
     }
   }
 
   reset() {
     this.simSub?.unsubscribe();
+    this.countdownSub?.unsubscribe();
     this.simulating = false;
+    this.testing = false;
+    this.requestInFlight = false;
     this.limit = null;
     this.remaining = null;
+    this.window = null;
     this.lastStatus = null;
     this.isBlocked = false;
     this.noRuleFound = false;
+    this.wasBlocked = false;
+    this.blockedAt = null;
+    this.windowResetAt = null;
+    this.windowCountdown = 0;
     this.history = [];
   }
 

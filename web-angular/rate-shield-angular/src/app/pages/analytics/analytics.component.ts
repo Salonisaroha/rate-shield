@@ -40,6 +40,8 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   newLogIds = new Set<string>();
   private refreshSub?: Subscription;
 
+  private isFirstLoad = true;
+
   constructor(
     private rulesService: RulesService,
     private auditService: AuditService,
@@ -48,7 +50,6 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadData();
-    // Auto-refresh every 10 seconds
     this.refreshSub = interval(10000).subscribe(() => this.loadData(true));
   }
 
@@ -59,12 +60,14 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   loadData(silent = false) {
     if (!silent) this.loading = true;
 
+    // Cancel previous in-flight rules request before starting a new one
     this.rulesService.getAllRules().subscribe({
       next: (res) => {
         this.rules = res.data || [];
         this.computeRuleStats();
         this.loading = false;
         this.lastUpdated = new Date();
+        this.isFirstLoad = false;
       },
       error: () => {
         if (!silent) this.toastr.error('Failed to load rules');

@@ -14,12 +14,12 @@ const (
 )
 
 type RulesService interface {
-	GetAllRules() ([]models.Rule, error)
-	GetPaginatedRules(page, items int) (models.PaginatedRules, error)
+	GetAllRules(userEmail string) ([]models.Rule, error)
+	GetPaginatedRules(page, items int, userEmail string) (models.PaginatedRules, error)
 	GetRule(key string) (*models.Rule, bool, error)
-	SearchRule(searchText string) ([]models.Rule, error)
-	CreateOrUpdateRule(rule models.Rule, actor, ipAddress, userAgent string) error
-	DeleteRule(endpoint, actor, ipAddress, userAgent string) error
+	SearchRule(searchText string, userEmail string) ([]models.Rule, error)
+	CreateOrUpdateRule(rule models.Rule, actor, ipAddress, userAgent string, userEmail string) error
+	DeleteRule(endpoint, actor, ipAddress, userAgent string, userEmail string) error
 	CacheRulesLocally() *map[string]*models.Rule
 	ListenToRulesUpdate(updatesChannel chan string)
 }
@@ -36,127 +36,119 @@ func NewRedisRulesService(client redisClient.RedisRuleClient, auditSvc AuditServ
 	}
 }
 
+// userRuleKey returns a per-user namespaced Redis key: "user:<email>:<endpoint>"
+func userRuleKey(userEmail, endpoint string) string {
+	return "user:" + userEmail + ":" + endpoint
+}
+
+// userRulePrefix returns the scan prefix for a user's rules
+func userRulePrefix(userEmail string) string {
+	return "user:" + userEmail + ":"
+}
+
 func (s RulesServiceRedis) GetRule(key string) (*models.Rule, bool, error) {
 	return s.redisClient.GetRule(key)
 }
 
-func (s RulesServiceRedis) GetAllRules() ([]models.Rule, error) {
-	keys, _, err := s.redisClient.GetAllRuleKeys()
+func (s RulesServiceRedis) GetAllRules(userEmail string) ([]models.Rule, error) {
+	keys, _, err := s.redisClient.GetAllRuleKeys(userRulePrefix(userEmail))
 	if err != nil {
 		log.Err(err).Msg("unable to get all rule keys from redis")
 	}
 
 	rules := []models.Rule{}
-
 	for _, key := range keys {
 		rule, found, err := s.redisClient.GetRule(key)
-
 		if err != nil {
 			log.Err(err).Msgf("unable to get rule from redis for key: %s", key)
 			continue
 		}
-
 		if !found {
-			// Key disappeared between Keys() scan and JSONGet — safe to skip silently
 			continue
 		}
-
 		rules = append(rules, *rule)
 	}
-
 	return rules, nil
 }
 
-func (s RulesServiceRedis) SearchRule(searchText string) ([]models.Rule, error) {
-	rules, err := s.GetAllRules()
+func (s RulesServiceRedis) SearchRule(searchText string, userEmail string) ([]models.Rule, error) {
+	rules, err := s.GetAllRules(userEmail)
 	if err != nil {
 		return nil, err
 	}
 	searchedRules := []models.Rule{}
-
 	for _, rule := range rules {
 		if strings.Contains(rule.APIEndpoint, searchText) {
 			searchedRules = append(searchedRules, rule)
 		}
 	}
-
 	return searchedRules, nil
 }
 
-func (s RulesServiceRedis) CreateOrUpdateRule(rule models.Rule, actor, ipAddress, userAgent string) error {
-	// Check if rule already exists to determine action (CREATE vs UPDATE)
-	existingRule, found, err := s.redisClient.GetRule(rule.APIEndpoint)
+func (s RulesServiceRedis) CreateOrUpdateRule(rule models.Rule, actor, ipAddress, userAgent string, userEmail string) error {
+	redisKey := userRuleKey(userEmail, rule.APIEndpoint)
 
+	existingRule, found, err := s.redisClient.GetRule(redisKey)
 	var action string
 	var oldRule *models.Rule
-
 	if found && err == nil {
-		// Rule exists - this is an UPDATE
 		action = models.AuditActionUpdate
 		oldRule = existingRule
 	} else {
-		// Rule doesn't exist - this is a CREATE
 		action = models.AuditActionCreate
 		oldRule = nil
 	}
 
-	// Save the rule to Redis
-	err = s.redisClient.SetRule(rule.APIEndpoint, rule)
-	if err != nil {
+	if err := s.redisClient.SetRule(redisKey, rule); err != nil {
 		log.Err(err).Msg("unable to create or update rule")
 		return err
 	}
 
-	// Log audit event
 	if s.auditSvc != nil {
-		auditErr := s.auditSvc.LogRuleChange(actor, action, rule.APIEndpoint, oldRule, &rule, ipAddress, userAgent)
-		if auditErr != nil {
-			log.Warn().Err(auditErr).Msg("failed to log audit event for rule change")
-			// Don't fail the operation if audit logging fails
+		if auditErr := s.auditSvc.LogRuleChange(actor, action, rule.APIEndpoint, oldRule, &rule, ipAddress, userAgent); auditErr != nil {
+			log.Warn().Err(auditErr).Msg("failed to log audit event")
 		}
 	}
-
-	return s.redisClient.PublishMessage(redisChannel, "rule-updated")
+	return s.redisClient.PublishMessage(redisChannel, "UpdateRules")
 }
 
-func (s RulesServiceRedis) DeleteRule(endpoint, actor, ipAddress, userAgent string) error {
-	// Get the existing rule before deleting for audit log
-	existingRule, found, err := s.redisClient.GetRule(endpoint)
+func (s RulesServiceRedis) DeleteRule(endpoint, actor, ipAddress, userAgent string, userEmail string) error {
+	redisKey := userRuleKey(userEmail, endpoint)
+
+	existingRule, found, err := s.redisClient.GetRule(redisKey)
 	if !found || err != nil {
 		log.Warn().Str("endpoint", endpoint).Msg("rule not found for deletion")
-		// Still attempt to delete in case of inconsistency
 	}
 
-	// Delete the rule from Redis
-	err = s.redisClient.DeleteRule(endpoint)
-	if err != nil {
+	if err := s.redisClient.DeleteRule(redisKey); err != nil {
 		log.Err(err).Msg("unable to delete rule")
 		return err
 	}
 
-	// Log audit event
 	if s.auditSvc != nil && existingRule != nil {
-		auditErr := s.auditSvc.LogRuleChange(actor, models.AuditActionDelete, endpoint, existingRule, nil, ipAddress, userAgent)
-		if auditErr != nil {
-			log.Warn().Err(auditErr).Msg("failed to log audit event for rule deletion")
-			// Don't fail the operation if audit logging fails
+		if auditErr := s.auditSvc.LogRuleChange(actor, models.AuditActionDelete, endpoint, existingRule, nil, ipAddress, userAgent); auditErr != nil {
+			log.Warn().Err(auditErr).Msg("failed to log audit event")
 		}
 	}
-
-	return s.redisClient.PublishMessage(redisChannel, "rule-updated")
+	return s.redisClient.PublishMessage(redisChannel, "UpdateRules")
 }
 
 func (s RulesServiceRedis) CacheRulesLocally() *map[string]*models.Rule {
-	rules, err := s.GetAllRules()
+	// CacheRulesLocally is used by the rate limiter engine which works across all users.
+	// It scans all user-namespaced rule keys and caches them by their full Redis key.
+	keys, _, err := s.redisClient.GetAllRuleKeys("user:")
 	if err != nil {
 		log.Err(err).Msg("Unable to cache all rules locally")
 	}
 
 	cachedRules := make(map[string]*models.Rule)
-
-	for _, rule := range rules {
-		r := rule // copy to new variable so each pointer is independent
-		cachedRules[r.APIEndpoint] = &r
+	for _, key := range keys {
+		rule, found, err := s.redisClient.GetRule(key)
+		if err != nil || !found {
+			continue
+		}
+		r := *rule
+		cachedRules[key] = &r
 	}
 
 	log.Info().Msg("Rules locally cached ✅")
@@ -167,8 +159,8 @@ func (s RulesServiceRedis) ListenToRulesUpdate(updatesChannel chan string) {
 	s.redisClient.ListenToRulesUpdate(updatesChannel)
 }
 
-func (s RulesServiceRedis) GetPaginatedRules(page, items int) (models.PaginatedRules, error) {
-	allRules, err := s.GetAllRules()
+func (s RulesServiceRedis) GetPaginatedRules(page, items int, userEmail string) (models.PaginatedRules, error) {
+	allRules, err := s.GetAllRules(userEmail)
 	if err != nil {
 		log.Err(err).Msgf("unable to get rules from redis")
 		return models.PaginatedRules{}, err

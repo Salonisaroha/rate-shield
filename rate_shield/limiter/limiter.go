@@ -1,17 +1,13 @@
 package limiter
 
 import (
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/salonisaroha/RateShield/models"
 	"github.com/salonisaroha/RateShield/service"
 	"github.com/salonisaroha/RateShield/utils"
-)
-
-const (
-	TokenAddTime = time.Second * 10
 )
 
 type Limiter struct {
@@ -31,9 +27,8 @@ func NewRateLimiterService(
 		fixedWindow:   fixedWindow,
 		redisRuleSvc:  redisRuleSvc,
 		slidingWindow: slidingWindow,
-		// This is initialized later in StartRateLimiter() function
-		cachedRules: nil,
-		rulesMutex:  sync.RWMutex{},
+		cachedRules:   nil,
+		rulesMutex:    sync.RWMutex{},
 	}
 }
 
@@ -44,7 +39,19 @@ func (l *Limiter) CheckLimit(ip, endpoint string) *models.RateLimitResponse {
 	rulesMap := *l.cachedRules
 	l.rulesMutex.RUnlock()
 
-	rule, found := rulesMap[endpoint]
+	// Rules are cached by full Redis key "user:<email>:<endpoint>".
+	// Match by splitting on the last colon to extract the stored endpoint exactly,
+	// preventing suffix collisions (e.g. /api/v1 matching /api/v1/users).
+	var rule *models.Rule
+	var found bool
+	for k, r := range rulesMap {
+		idx := strings.LastIndex(k, ":")
+		if idx != -1 && k[idx+1:] == endpoint {
+			rule = r
+			found = true
+			break
+		}
+	}
 
 	if found {
 		switch rule.Strategy {
@@ -57,7 +64,7 @@ func (l *Limiter) CheckLimit(ip, endpoint string) *models.RateLimitResponse {
 		}
 	}
 
-	return utils.BuildRateLimitSuccessResponse(0, 0)
+	return utils.BuildRateLimitSuccessResponse(0, 0, 0)
 }
 
 func (l *Limiter) processTokenBucketReq(key string, rule *models.Rule) *models.RateLimitResponse {
@@ -67,24 +74,22 @@ func (l *Limiter) processTokenBucketReq(key string, rule *models.Rule) *models.R
 		return resp
 	}
 
-	// Only allow on error for actual Redis/internal errors (500), never for rate limit hits (429)
 	if rule.AllowOnError && resp.HTTPStatusCode == 500 {
-		return utils.BuildRateLimitSuccessResponse(0, 0)
+		return utils.BuildRateLimitSuccessResponse(0, 0, 0)
 	}
 
 	return resp
 }
 
 func (l *Limiter) processFixedWindowReq(ip, endpoint string, rule *models.Rule) *models.RateLimitResponse {
-	resp := l.fixedWindow.processRequest(ip, endpoint, rule)
+	resp := l.fixedWindow.ProcessRequest(ip, endpoint, rule)
 
 	if resp.Success {
 		return resp
 	}
 
-	// Only allow on error for actual Redis/internal errors (500), never for rate limit hits (429)
 	if rule.AllowOnError && resp.HTTPStatusCode == 500 {
-		return utils.BuildRateLimitSuccessResponse(0, 0)
+		return utils.BuildRateLimitSuccessResponse(0, 0, 0)
 	}
 
 	return resp
@@ -97,9 +102,8 @@ func (l *Limiter) processSlidingWindowReq(ip, endpoint string, rule *models.Rule
 		return resp
 	}
 
-	// Only allow on error for actual Redis/internal errors (500), never for rate limit hits (429)
 	if rule.AllowOnError && resp.HTTPStatusCode == 500 {
-		return utils.BuildRateLimitSuccessResponse(0, 0)
+		return utils.BuildRateLimitSuccessResponse(0, 0, 0)
 	}
 
 	return resp
@@ -113,9 +117,6 @@ func (l *Limiter) StartRateLimiter() {
 	log.Info().Msg("Starting limiter service ✅")
 	l.cachedRules = l.redisRuleSvc.CacheRulesLocally()
 	log.Info().Msgf("Total Rules: %d", len(*l.cachedRules))
-
-	// Not required for now.
-	//l.tokenBucket.startAddTokenJob()
 	go l.listenToRulesUpdate()
 }
 

@@ -1,10 +1,47 @@
-<div *ngIf="!authChecked" class="flex items-center justify-center h-screen w-screen bg-global-bg">
-  <span class="text-gray-400 text-sm">Loading...</span>
+<!-- Email verification in progress -->
+<div *ngIf="verifyState === 'verifying'" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF0FF,#F3F0FF);font-family:'Poppins',sans-serif;">
+  <div style="text-align:center;">
+    <div style="width:48px;height:48px;border:3px solid #E0E7FF;border-top-color:#6366F1;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
+    <p style="font-size:0.85rem;color:#6366F1;font-weight:600;">Verifying your email...</p>
+  </div>
 </div>
 
-<app-login *ngIf="authChecked && !auth.isLoggedIn()"></app-login>
-
-<div *ngIf="authChecked && auth.isLoggedIn()" class="flex flex-row bg-global-bg p-3 h-screen w-screen overflow-hidden gap-0">
-  <app-sidebar (selectPage)="onSelectPage($event)" [externalPage]="selectedPage"></app-sidebar>
-  <app-content-area class="flex-1 min-w-0" [selectedPage]="selectedPage" (pageChange)="onSelectPage($event)"></app-content-area>
+<!-- Email verified success -->
+<div *ngIf="verifyState === 'success'" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF0FF,#F3F0FF);font-family:'Poppins',sans-serif;">
+  <div style="text-align:center;background:#fff;border-radius:18px;padding:36px 40px;box-shadow:0 8px 32px rgba(99,102,241,0.12);border:1px solid #DDD6FE;">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#DCFCE7,#BBF7D0);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 12px rgba(22,163,74,0.2);">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h2 style="font-size:1rem;font-weight:700;color:#0F172A;margin:0 0 6px;">Email Verified!</h2>
+    <p style="font-size:0.76rem;color:#64748B;margin:0;">Redirecting you to sign in...</p>
+  </div>
 </div>
+
+<!-- Verification error -->
+<div *ngIf="verifyState === 'error'" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#EEF0FF,#F3F0FF);font-family:'Poppins',sans-serif;">
+  <div style="text-align:center;background:#fff;border-radius:18px;padding:36px 40px;box-shadow:0 8px 32px rgba(99,102,241,0.12);border:1px solid #DDD6FE;">
+    <div style="width:56px;height:56px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    </div>
+    <h2 style="font-size:1rem;font-weight:700;color:#0F172A;margin:0 0 6px;">Verification Failed</h2>
+    <p style="font-size:0.76rem;color:#64748B;margin:0;">{{ verifyMessage }}</p>
+  </div>
+</div>
+
+<!-- Normal app flow -->
+<ng-container *ngIf="verifyState === 'idle'">
+  <div *ngIf="!authChecked" class="flex items-center justify-center h-screen w-screen bg-global-bg">
+    <span class="text-gray-400 text-sm">Loading...</span>
+  </div>
+
+  <app-login *ngIf="authChecked && !auth.isLoggedIn()"></app-login>
+
+  <div *ngIf="authChecked && auth.isLoggedIn()" class="flex flex-row bg-global-bg p-3 h-screen w-screen overflow-hidden gap-0">
+    <app-sidebar (selectPage)="onSelectPage($event)" [externalPage]="selectedPage"></app-sidebar>
+    <app-content-area class="flex-1 min-w-0" [selectedPage]="selectedPage" (pageChange)="onSelectPage($event)"></app-content-area>
+  </div>
+</ng-container>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>

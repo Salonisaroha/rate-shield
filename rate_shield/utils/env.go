@@ -41,6 +41,10 @@ func GetRedisClusterPassword() string {
 	return password
 }
 
+func GetSMTPConfig() (host, port, user, pass string) {
+	return os.Getenv("SMTP_HOST"), os.Getenv("SMTP_PORT"), os.Getenv("SMTP_USER"), os.Getenv("SMTP_PASS")
+}
+
 func checkEmptyENV(Var string, message string) {
 	if len(Var) == 0 {
 		log.Fatal().Msg(message)

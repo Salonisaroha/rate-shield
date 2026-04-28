@@ -302,9 +302,13 @@ export class UseCasesComponent {
         this.creatingRuleId = null;
         this.toastr.success(`Rule created for ${useCase.ruleConfig.endpoint}`);
       },
-      error: () => {
+      error: (err: any) => {
         this.creatingRuleId = null;
-        this.toastr.error(`Failed to create rule — backend may be offline`);
+        if (err?.status === 401) {
+          this.toastr.error('Session expired. Please log in again.');
+        } else {
+          this.toastr.error(`Failed to create rule — ${err?.error?.message || 'backend may be offline'}`);
+        }
       }
     });
   }
