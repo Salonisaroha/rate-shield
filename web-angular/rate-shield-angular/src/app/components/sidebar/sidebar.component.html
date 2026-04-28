@@ -1,7 +1,22 @@
-<div class="w-64 h-full flex flex-col justify-between rounded-2xl mr-3 shrink-0"
-  style="background: #0F1117; border: 1px solid rgba(255,255,255,0.06);">
+<!-- Hamburger button (mobile only) -->
+<button class="hamburger-btn" (click)="toggleSidebar()" aria-label="Toggle menu">
+  <svg *ngIf="!isOpen" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <line x1="3" y1="12" x2="21" y2="12"/>
+    <line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+  <svg *ngIf="isOpen" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+</button>
 
-  <!-- Logo -->
+<!-- Backdrop -->
+<div *ngIf="isOpen" class="backdrop" (click)="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" [class.open]="isOpen">
+
   <div>
     <div class="px-5 pt-6 pb-4">
       <a href="/" class="flex items-center gap-3">
@@ -18,10 +33,8 @@
       </a>
     </div>
 
-    <!-- Divider -->
     <div class="mx-5 mb-3" style="border-top: 1px solid rgba(255,255,255,0.06);"></div>
 
-    <!-- Nav label -->
     <p class="px-5 mb-1.5" style="font-size: 10px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.08em;">Menu</p>
 
     <nav class="px-3">
@@ -39,15 +52,12 @@
             : { 'color': '#6B7280' }">
           <span class="text-[15px] leading-none w-5 text-center shrink-0">{{ item.icon }}</span>
           <span class="text-[0.81rem] font-medium flex-1">{{ item.label }}</span>
-          <span *ngIf="selectedPage === item.page"
-            class="w-1.5 h-1.5 rounded-full shrink-0"
-            style="background: #818CF8;"></span>
+          <span *ngIf="selectedPage === item.page" class="w-1.5 h-1.5 rounded-full shrink-0" style="background: #818CF8;"></span>
         </li>
       </ul>
     </nav>
   </div>
 
-  <!-- Footer -->
   <div class="px-5 pb-5">
     <div class="pt-4" style="border-top: 1px solid rgba(255,255,255,0.06);">
       <div
