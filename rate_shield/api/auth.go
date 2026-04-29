@@ -415,9 +415,13 @@ func sendEmail(to, subject, body string) error {
 	port := os.Getenv("SMTP_PORT")
 	user := os.Getenv("SMTP_USER")
 	pass := os.Getenv("SMTP_PASS")
+	sender := os.Getenv("SMTP_SENDER")
+	if sender == "" {
+		sender = user
+	}
 	auth := smtp.PlainAuth("", user, pass, host)
 	msg := []byte("To: " + to + "\r\n" +
-		"From: " + user + "\r\n" +
+		"From: Rate Shield <" + sender + ">\r\n" +
 		"Subject: " + subject + "\r\n" +
 		"MIME-Version: 1.0\r\n" +
 		"Content-Type: text/html; charset=UTF-8\r\n\r\n" +
