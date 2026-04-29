@@ -147,26 +147,37 @@ export class LoginComponent implements OnInit, AfterViewInit, OnDestroy {
     this.error = '';
 
     if (this.mode === 'register') {
-      this.auth.register(this.email.trim(), this.password).subscribe(res => {
-        this.loading = false;
-        if (res.success) {
-          this.screen = 'otp';
-        } else {
-          this.error = res.message;
+      this.auth.register(this.email.trim(), this.password).subscribe({
+        next: res => {
+          this.loading = false;
+          if (res.success) {
+            this.screen = 'otp';
+          } else {
+            this.error = res.message || 'Registration failed. Please try again.';
+          }
+        },
+        error: () => {
+          this.loading = false;
+          this.error = 'Unable to connect to server. Please try again.';
         }
       });
     } else {
-      this.auth.login(this.email.trim(), this.password).subscribe(res => {
-        if (res.success) {
-          window.location.reload();
-        } else if (res.needsVerification) {
-          // Account exists but unverified — send OTP and go to OTP screen
+      this.auth.login(this.email.trim(), this.password).subscribe({
+        next: res => {
+          if (res.success) {
+            window.location.reload();
+          } else if (res.needsVerification) {
+            this.loading = false;
+            this.auth.resendOtp(this.email.trim()).subscribe();
+            this.screen = 'otp';
+          } else {
+            this.error = res.message || 'Invalid email or password.';
+            this.loading = false;
+          }
+        },
+        error: () => {
           this.loading = false;
-          this.auth.resendOtp(this.email.trim()).subscribe();
-          this.screen = 'otp';
-        } else {
-          this.error = res.message;
-          this.loading = false;
+          this.error = 'Unable to connect to server. Please try again.';
         }
       });
     }
