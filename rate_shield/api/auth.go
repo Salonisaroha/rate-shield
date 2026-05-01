@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -411,6 +412,11 @@ func parseJWT(tokenStr string) (jwt.MapClaims, error) {
 }
 
 func sendEmail(to, subject, body string) error {
+	// Use Brevo HTTP API if API key is set (works when SMTP ports are blocked)
+	if apiKey := os.Getenv("BREVO_API_KEY"); apiKey != "" {
+		return sendEmailViaBrevoAPI(to, subject, body, apiKey)
+	}
+
 	host := os.Getenv("SMTP_HOST")
 	port := os.Getenv("SMTP_PORT")
 	user := os.Getenv("SMTP_USER")
@@ -427,4 +433,38 @@ func sendEmail(to, subject, body string) error {
 		"Content-Type: text/html; charset=UTF-8\r\n\r\n" +
 		body)
 	return smtp.SendMail(host+":"+port, auth, user, []string{to}, msg)
+}
+
+func sendEmailViaBrevoAPI(to, subject, body, apiKey string) error {
+	sender := os.Getenv("SMTP_SENDER")
+	if sender == "" {
+		sender = os.Getenv("SMTP_USER")
+	}
+
+	payload := fmt.Sprintf(`{
+		"sender": {"name": "Rate Shield", "email": "%s"},
+		"to": [{"email": "%s"}],
+		"subject": "%s",
+		"htmlContent": %q
+	}`, sender, to, subject, body)
+
+	req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", strings.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("api-key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("brevo API error: status %d", resp.StatusCode)
+	}
+	return nil
 }
